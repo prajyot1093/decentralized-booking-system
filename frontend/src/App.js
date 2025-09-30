@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 
 // Components
 import Navbar from './components/Navbar';
+import ErrorBoundary from './components/ErrorBoundary';
 import Home from './pages/Home';
 import Properties from './pages/Properties';
 import BookingForm from './pages/BookingForm';
@@ -31,30 +32,32 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Web3Provider>
-        <Router>
-          <div className="App">
-            <Navbar />
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/properties" element={<Properties />} />
-              <Route path="/book/:propertyId" element={<BookingForm />} />
-              <Route path="/my-bookings" element={<MyBookings />} />
-              <Route path="/my-properties" element={<MyProperties />} />
-            </Routes>
-            <Toaster 
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: '#363636',
-                  color: '#fff',
-                },
-              }}
-            />
-          </div>
-        </Router>
-      </Web3Provider>
+      <ErrorBoundary>
+        <Web3Provider>
+          <Router>
+            <div className="App">
+              <Navbar />
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/properties" element={<Properties />} />
+                <Route path="/book/:propertyId" element={<BookingForm />} />
+                <Route path="/my-bookings" element={<MyBookings />} />
+                <Route path="/my-properties" element={<MyProperties />} />
+              </Routes>
+              <Toaster 
+                position="top-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: '#363636',
+                    color: '#fff',
+                  },
+                }}
+              />
+            </div>
+          </Router>
+        </Web3Provider>
+      </ErrorBoundary>
     </ThemeProvider>
   );
 }
