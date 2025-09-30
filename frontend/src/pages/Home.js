@@ -67,7 +67,7 @@ const Home = () => {
                 gutterBottom
                 sx={{ fontWeight: 'bold', mb: 3 }}
               >
-                Book Properties on the 
+                Book Bus, Train & Movie Tickets on the 
                 <Typography 
                   component="span" 
                   variant="h2" 
@@ -81,8 +81,8 @@ const Home = () => {
                 variant="h5" 
                 sx={{ mb: 4, opacity: 0.9, lineHeight: 1.6 }}
               >
-                Experience the future of property rentals with our decentralized booking system. 
-                Secure, transparent, and fee-efficient bookings powered by smart contracts.
+                One unified decentralized platform to reserve seats on buses & trains or grab movie tickets.
+                Secure, transparent, instant confirmations powered by smart contracts.
               </Typography>
 
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
@@ -108,7 +108,7 @@ const Home = () => {
                     variant="contained"
                     size="large"
                     component={Link}
-                    to="/properties"
+                    to="/tickets"
                     sx={{ 
                       borderRadius: '25px',
                       px: 4,
@@ -119,7 +119,7 @@ const Home = () => {
                       '&:hover': { bgcolor: 'secondary.dark' }
                     }}
                   >
-                    Explore Properties
+                    Browse Tickets
                   </Button>
                 )}
                 
@@ -198,7 +198,7 @@ const Home = () => {
             gutterBottom
             sx={{ fontWeight: 'bold', mb: 2 }}
           >
-            Why Choose BookChain?
+            Why Choose TicketChain?
           </Typography>
           
           <Typography 
@@ -207,7 +207,7 @@ const Home = () => {
             color="text.secondary"
             sx={{ mb: 6 }}
           >
-            Revolutionary features that make property booking seamless and secure
+            Revolutionary features that make multi-modal ticket booking seamless and secure
           </Typography>
 
           <Grid container spacing={4}>
@@ -258,7 +258,7 @@ const Home = () => {
                 variant="contained"
                 size="large"
                 component={Link}
-                to="/properties"
+                to="/tickets"
                 startIcon={<BookOnline />}
                 sx={{ 
                   borderRadius: '25px',
@@ -268,7 +268,7 @@ const Home = () => {
                   '&:hover': { bgcolor: 'secondary.dark' }
                 }}
               >
-                Book Now
+                Book Tickets
               </Button>
               
               <Button
@@ -286,7 +286,7 @@ const Home = () => {
                   }
                 }}
               >
-                List Property
+                List Service
               </Button>
             </Box>
           </Box>

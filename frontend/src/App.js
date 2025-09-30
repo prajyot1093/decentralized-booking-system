@@ -12,6 +12,7 @@ import Properties from './pages/Properties';
 import BookingForm from './pages/BookingForm';
 import MyBookings from './pages/MyBookings';
 import MyProperties from './pages/MyProperties';
+import Tickets from './pages/Tickets';
 
 // Context
 import { Web3Provider } from './context/Web3Context';
@@ -43,6 +44,7 @@ function App() {
                 <Route path="/book/:propertyId" element={<BookingForm />} />
                 <Route path="/my-bookings" element={<MyBookings />} />
                 <Route path="/my-properties" element={<MyProperties />} />
+                <Route path="/tickets" element={<Tickets />} />
               </Routes>
               <Toaster 
                 position="top-right"

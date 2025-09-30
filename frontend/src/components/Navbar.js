@@ -74,7 +74,7 @@ const Navbar = () => {
             fontWeight: 'bold'
           }}
         >
-          🏨 BookChain
+          🎫 TicketChain
         </Typography>
 
         {/* Navigation Links */}
@@ -93,7 +93,15 @@ const Navbar = () => {
             to="/properties"
             startIcon={<Hotel />}
           >
-            Properties
+            Stays
+          </Button>
+          <Button 
+            color="inherit" 
+            component={Link} 
+            to="/tickets"
+            startIcon={<BookOnline />}
+          >
+            Tickets
           </Button>
           {isConnected && (
             <>

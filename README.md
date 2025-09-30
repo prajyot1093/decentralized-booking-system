@@ -1,14 +1,19 @@
-# Decentralized Booking System 🏨⛓️
+# TicketChain – Multi-Modal Decentralized Booking ��🏨⛓️
 
-A blockchain-powered booking system built for hackathon competition, enabling decentralized property rentals with smart contract automation.
+Originally a property rental dApp, now pivoted to a unified on-chain platform for Bus, Train & Movie ticket booking (while retaining property stays module).
 
 ## 🚀 Project Overview
 
-This project implements a decentralized booking system where:
-- Property owners can list their accommodations
-- Guests can book properties with cryptocurrency payments
-- Smart contracts handle booking logic, payments, and disputes
-- All transactions are transparent and immutable on the blockchain
+This MVP now supports two verticals:
+1. Property stays (legacy `DecentralizedBookingSystem.sol`)
+2. Multi-modal ticketing via `TicketBookingSystem.sol` (bus / train / movie shows)
+
+Core capabilities:
+- Service providers list routes/shows with seat counts & base price
+- Users purchase specific seats (bitmap-tracked) on-chain
+- Refunds allowed until 15 minutes before departure/show
+- Provider withdrawal (simplified MVP earnings model)
+- Wallet-based authentication (non-custodial)
 
 ## 🛠️ Tech Stack
 
@@ -30,28 +35,26 @@ This project implements a decentralized booking system where:
 - **Material-UI/Tailwind** - UI components
 - **IPFS** - Decentralized file storage
 
-## 📁 Project Structure
+## 📁 Project Structure (Updated)
 
 ```
 decentralized-booking-system/
-├── contracts/                 # Smart contracts
-│   ├── BookingSystem.sol
-│   ├── PropertyNFT.sol
-│   └── PaymentHandler.sol
-├── backend/                   # Node.js API
+├── contracts/
+│   ├── contracts/
+│   │   ├── DecentralizedBookingSystem.sol   # Property stays
+│   │   └── TicketBookingSystem.sol          # Bus/Train/Movie tickets
+│   └── scripts/
+│       └── deploy_tickets.js                # Seeds demo services
+├── frontend/
 │   ├── src/
-│   ├── tests/
-│   └── package.json
-├── frontend/                  # React application
-│   ├── src/
-│   ├── public/
-│   └── package.json
-├── docs/                      # Documentation
-├── scripts/                   # Deployment scripts
+│   │   ├── pages/Tickets.js                 # Ticket UI
+│   │   ├── abi/TicketBookingSystem.json     # ABI placeholder
+│   │   └── context/Web3Context.js           # Contract wiring
+├── backend/ (planned)
 └── README.md
 ```
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Frontend Only)
 
 ### Prerequisites
 - Node.js (v16+)
@@ -72,16 +75,26 @@ npm run install-all
 cp .env.example .env
 ```
 
-### Development
+### Start Frontend Only
 ```bash
-# Start the development environment
-npm run dev
-
-# This will start:
-# - Hardhat local blockchain (port 8545)
-# - Backend API server (port 3001)
-# - React frontend (port 3000)
+npm install
+cd contracts && npm install && cd ..
+cd frontend && npm install && cd ..
+npm start
 ```
+
+### Local Ticket Contract Deployment
+```bash
+cd contracts
+npx hardhat compile
+npx hardhat node   # (keep running in one terminal)
+npx hardhat run scripts/deploy_tickets.js --network localhost
+```
+Copy deployed address → create `frontend/.env`:
+```
+REACT_APP_TICKET_ADDRESS=0xYourDeployedContract
+```
+Restart frontend.
 
 ## 🔧 Development Setup
 
@@ -104,25 +117,27 @@ npm run dev
 4. Submit a Pull Request
 5. Code review and merge
 
-## 📋 Development Roadmap
+## 📋 Development Roadmap (Revised)
 
 ### Phase 1: Core Infrastructure
-- [ ] Smart contract architecture
-- [ ] Basic booking functionality
-- [ ] Payment handling
-- [ ] Backend API setup
+- [x] Property booking contract
+- [x] Ticket booking contract (bus/train/movie)
+- [x] Seat bitmap mechanism
+- [ ] Backend API (off-chain indexing)
 
 ### Phase 2: Frontend Development
-- [ ] User authentication (Web3)
-- [ ] Property listing interface
-- [ ] Booking flow
-- [ ] Payment integration
+- [x] Wallet auth
+- [x] Property pages
+- [x] Ticket vertical UI (basic)
+- [ ] Seat map UI
+- [ ] Service listing form (bus/train/movie)
 
 ### Phase 3: Advanced Features
-- [ ] Dispute resolution
-- [ ] Review system
-- [ ] Multi-token support
-- [ ] Mobile responsiveness
+- [ ] On-chain enumeration helper for services
+- [ ] Ticket transfer / resale
+- [ ] Dynamic pricing / surge model
+- [ ] Multi-token / stablecoin support
+- [ ] Off-chain caching/indexing service
 
 ## 🤝 Contributing
 
@@ -145,15 +160,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📊 Project Status
 
-✅ **Smart Contract Architecture** - Complete  
-✅ **Frontend User Interface** - Complete  
-✅ **Web3 Wallet Integration** - Complete  
-✅ **Property Listing System** - Complete  
-✅ **Booking Management** - Complete  
-✅ **Responsive Design** - Complete  
-🔄 **Backend API** - In Progress  
-🔄 **Testing Suite** - In Progress  
-⏳ **Deployment** - Pending  
+✅ Property booking contract  
+✅ Ticket booking contract  
+✅ Wallet integration  
+✅ Basic ticket UI  
+✅ Seed deployment script  
+🔄 Seat selection UI  
+🔄 Contract tests  
+🔄 Backend API  
+⏳ Deployment  
 
 ## 🎯 Live Demo
 

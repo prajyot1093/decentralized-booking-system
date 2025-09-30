@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import toast from 'react-hot-toast';
+import TicketABI from '../abi/TicketBookingSystem.json';
 
 const Web3Context = createContext();
 
@@ -19,11 +20,24 @@ export const Web3Provider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [chainId, setChainId] = useState(null);
+  const [ticketContract, setTicketContract] = useState(null);
+  const TICKET_ADDRESS = process.env.REACT_APP_TICKET_ADDRESS || null; // set via .env
 
   // Check if wallet is already connected
   useEffect(() => {
     checkConnection();
   }, []);
+
+  useEffect(() => {
+    if (signer && TICKET_ADDRESS) {
+      try {
+        const contract = new ethers.Contract(TICKET_ADDRESS, TicketABI.abi, signer);
+        setTicketContract(contract);
+      } catch (e) {
+        console.error('Failed to init ticket contract', e);
+      }
+    }
+  }, [signer, TICKET_ADDRESS]);
 
   const checkConnection = async () => {
     if (typeof window.ethereum !== 'undefined') {
@@ -163,6 +177,7 @@ export const Web3Provider = ({ children }) => {
     switchNetwork,
     getBalance,
     formatAddress,
+    ticketContract,
   };
 
   return (

@@ -1,0 +1,135 @@
+import React from 'react';
+import { Box, Container, Typography, Tabs, Tab, Grid, Card, CardContent, Button, TextField } from '@mui/material';
+import { useWeb3 } from '../context/Web3Context';
+
+const ticketTypes = [
+  { key: 'bus', label: 'Bus' },
+  { key: 'train', label: 'Train' },
+  { key: 'movie', label: 'Movie' }
+];
+
+function Tickets() {
+  const { ticketContract, isConnected } = useWeb3();
+  const [type, setType] = React.useState('bus');
+  const [search, setSearch] = React.useState({ from: '', to: '', date: '', movie: '', city: '' });
+  const [onchainServices, setOnchainServices] = React.useState([]);
+
+  const handleChange = (_, newValue) => setType(newValue);
+
+  const renderSearch = () => {
+    if (type === 'movie') {
+      return (
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={12} md={4}>
+            <TextField fullWidth label="City" value={search.city} onChange={e => setSearch(s => ({ ...s, city: e.target.value }))} />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField fullWidth label="Movie" value={search.movie} onChange={e => setSearch(s => ({ ...s, movie: e.target.value }))} />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField type="date" fullWidth label="Date" InputLabelProps={{ shrink: true }} value={search.date} onChange={e => setSearch(s => ({ ...s, date: e.target.value }))} />
+          </Grid>
+        </Grid>
+      );
+    }
+    return (
+      <Grid container spacing={2} sx={{ mt: 1 }}>
+        <Grid item xs={12} md={3}>
+          <TextField fullWidth label="From" value={search.from} onChange={e => setSearch(s => ({ ...s, from: e.target.value }))} />
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <TextField fullWidth label="To" value={search.to} onChange={e => setSearch(s => ({ ...s, to: e.target.value }))} />
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <TextField type="date" fullWidth label="Date" InputLabelProps={{ shrink: true }} value={search.date} onChange={e => setSearch(s => ({ ...s, date: e.target.value }))} />
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Button fullWidth variant="contained" color="secondary" sx={{ height: '100%' }}>Search</Button>
+        </Grid>
+      </Grid>
+    );
+  };
+
+  React.useEffect(() => {
+    // Placeholder: Without an enumerable list on-chain we assume first 10 IDs
+    const load = async () => {
+      if (!ticketContract) return;
+      const services = [];
+      for (let i = 1; i <= 10; i++) {
+        try {
+          const svc = await ticketContract.getService(i);
+          if (svc.id.toString() === '0') continue; // uninitialized
+          services.push({
+            id: Number(svc.id),
+            type: ['bus','train','movie'][Number(svc.serviceType)] || 'bus',
+            name: svc.name,
+            origin: svc.origin,
+            destination: svc.destination,
+            startTime: Number(svc.startTime),
+            seats: Number(svc.totalSeats),
+            priceWei: svc.basePriceWei,
+            isActive: svc.isActive,
+          });
+        } catch (e) {
+          // stop if call fails (likely out of range)
+          break;
+        }
+      }
+      setOnchainServices(services);
+    };
+    load();
+  }, [ticketContract]);
+
+  // Replace sampleResults when contract connected
+  const displayResults = (isConnected && onchainServices.length > 0)
+    ? onchainServices.filter(r => r.type === type)
+    : sampleResults.filter(r => r.type === type);
+
+  const formatPrice = (r) => {
+    if (r.priceWei) {
+      try { return `${Number(r.priceWei) / 1e18} ETH`; } catch { return '—'; }
+    }
+    return r.price || '—';
+  };
+
+  return (
+    <Box sx={{ py: 4 }}>
+      <Container maxWidth="lg">
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 2 }}>
+          Decentralized Ticket Booking
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+          Book bus, train and movie tickets directly on-chain.
+        </Typography>
+
+        <Tabs value={type} onChange={handleChange} sx={{ mb: 2 }}>
+          {ticketTypes.map(t => <Tab key={t.key} label={t.label} value={t.key} />)}
+        </Tabs>
+
+        {renderSearch()}
+
+        <Grid container spacing={3} sx={{ mt: 2 }}>
+          {displayResults.map(result => (
+            <Grid item xs={12} md={4} key={result.id}>
+              <Card className="hover-card" sx={{ transition: '0.3s' }}>
+                <CardContent>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{result.name}</Typography>
+                  {type === 'movie' ? (
+                    <Typography variant="body2" color="text.secondary">City: {result.origin}</Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">{result.origin} → {result.destination}</Typography>
+                  )}
+                  <Typography variant="body2" sx={{ mt: 1 }}>Seats: {result.seats}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', mt: 1 }}>Price: {formatPrice(result)}</Typography>
+                  <Button disabled={!isConnected} variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>Book</Button>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
+    </Box>
+  );
+}
+
+export default Tickets;

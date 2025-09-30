@@ -1,0 +1,56 @@
+{
+  "_comment": "Placeholder ABI file. Replace with actual ABI from artifacts after running hardhat compile.",
+  "abi": [
+    {
+      "inputs": [
+        { "internalType": "uint8", "name": "serviceType", "type": "uint8" },
+        { "internalType": "string", "name": "name", "type": "string" },
+        { "internalType": "string", "name": "origin", "type": "string" },
+        { "internalType": "string", "name": "destination", "type": "string" },
+        { "internalType": "uint256", "name": "startTime", "type": "uint256" },
+        { "internalType": "uint256", "name": "basePriceWei", "type": "uint256" },
+        { "internalType": "uint256", "name": "totalSeats", "type": "uint256" }
+      ],
+      "name": "listService",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "serviceId", "type": "uint256" },
+        { "internalType": "uint256[]", "name": "seatNumbers", "type": "uint256[]" }
+      ],
+      "name": "purchaseSeats",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [{ "internalType": "uint256", "name": "serviceId", "type": "uint256" }],
+      "name": "getService",
+      "outputs": [
+        {
+          "components": [
+            { "internalType": "uint256", "name": "id", "type": "uint256" },
+            { "internalType": "uint8", "name": "serviceType", "type": "uint8" },
+            { "internalType": "address", "name": "provider", "type": "address" },
+            { "internalType": "string", "name": "name", "type": "string" },
+            { "internalType": "string", "name": "origin", "type": "string" },
+            { "internalType": "string", "name": "destination", "type": "string" },
+            { "internalType": "uint256", "name": "startTime", "type": "uint256" },
+            { "internalType": "uint256", "name": "basePriceWei", "type": "uint256" },
+            { "internalType": "uint256", "name": "totalSeats", "type": "uint256" },
+            { "internalType": "uint256", "name": "seatsBitmap", "type": "uint256" },
+            { "internalType": "bool", "name": "isActive", "type": "bool" }
+          ],
+          "internalType": "struct TicketBookingSystem.Service",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ]
+}
