@@ -1,5 +1,7 @@
 import React from 'react';
-import { Box, Container, Typography, Tabs, Tab, Grid, Card, CardContent, Button, TextField } from '@mui/material';
+import { Box, Container, Typography, Tabs, Tab, Grid, Card, CardContent, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, MenuItem } from '@mui/material';
+import SeatMap from '../components/SeatMap';
+import { ethers } from 'ethers';
 import { useWeb3 } from '../context/Web3Context';
 
 const ticketTypes = [
@@ -20,6 +22,10 @@ function Tickets() {
   const [type, setType] = React.useState('bus');
   const [search, setSearch] = React.useState({ from: '', to: '', date: '', movie: '', city: '' });
   const [onchainServices, setOnchainServices] = React.useState([]);
+  const [listOpen, setListOpen] = React.useState(false);
+  const [newService, setNewService] = React.useState({ serviceType: 'bus', name: '', origin: '', destination: '', startTime: '', price: '', seats: 40 });
+  const [seatDialog, setSeatDialog] = React.useState(null); // service object
+  const [selectedSeats, setSelectedSeats] = React.useState([]);
 
   const handleChange = (_, newValue) => setType(newValue);
 
@@ -87,6 +93,64 @@ function Tickets() {
     load();
   }, [ticketContract]);
 
+  const refresh = () => {
+    if (ticketContract) {
+      setOnchainServices([]);
+      // trigger effect by resetting contract reference logic implicitly; call load inline
+      (async () => {
+        const services = [];
+        for (let i = 1; i <= 20; i++) {
+          try {
+            const svc = await ticketContract.getService(i);
+            if (svc.id.toString() === '0') continue;
+            services.push({
+              id: Number(svc.id),
+              type: ['bus','train','movie'][Number(svc.serviceType)] || 'bus',
+              name: svc.name,
+              origin: svc.origin,
+              destination: svc.destination,
+              startTime: Number(svc.startTime),
+              seats: Number(svc.totalSeats),
+              priceWei: svc.basePriceWei,
+              isActive: svc.isActive,
+            });
+          } catch { break; }
+        }
+        setOnchainServices(services);
+      })();
+    }
+  };
+
+  const handleListService = async () => {
+    if (!ticketContract) return;
+    try {
+      const st = Math.floor(new Date(newService.startTime).getTime() / 1000);
+      const priceWei = ethers.parseEther(newService.price || '0');
+      const seatCount = Number(newService.seats || 0);
+      const typeIndex = { bus:0, train:1, movie:2 }[newService.serviceType];
+      const tx = await ticketContract.listService(typeIndex, newService.name, newService.origin, newService.destination, st, priceWei, seatCount);
+      await tx.wait();
+      setListOpen(false);
+      setNewService({ serviceType: 'bus', name: '', origin: '', destination: '', startTime: '', price: '', seats: 40 });
+      refresh();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleBookSeats = async () => {
+    if (!ticketContract || !seatDialog || !selectedSeats.length) return;
+    try {
+      const service = seatDialog;
+      const total = (Number(service.priceWei) * selectedSeats.length).toString();
+      const tx = await ticketContract.purchaseSeats(service.id, selectedSeats, { value: total });
+      await tx.wait();
+      setSeatDialog(null);
+      setSelectedSeats([]);
+      refresh();
+    } catch (e) { console.error(e); }
+  };
+
   // Replace sampleResults when contract connected
   const displayResults = (isConnected && onchainServices.length > 0)
     ? onchainServices.filter(r => r.type === type)
@@ -128,13 +192,58 @@ function Tickets() {
                   )}
                   <Typography variant="body2" sx={{ mt: 1 }}>Seats: {result.seats}</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 'bold', mt: 1 }}>Price: {formatPrice(result)}</Typography>
-                  <Button disabled={!isConnected} variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>Book</Button>
+                  <Button disabled={!isConnected} variant="contained" color="primary" fullWidth sx={{ mt: 2 }} onClick={() => { setSeatDialog(result); setSelectedSeats([]); }}>Book</Button>
                 </CardContent>
               </Card>
             </Grid>
           ))}
         </Grid>
+
+        <Box sx={{ mt:4, display:'flex', gap:2 }}>
+          <Button variant="outlined" onClick={refresh} disabled={!ticketContract}>Refresh</Button>
+          <Button variant="contained" onClick={() => setListOpen(true)} disabled={!isConnected}>List {type === 'movie' ? 'Show' : 'Service'}</Button>
+        </Box>
       </Container>
+
+      {/* List Service Modal */}
+      <Dialog open={listOpen} onClose={() => setListOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>List New {newService.serviceType.charAt(0).toUpperCase()+newService.serviceType.slice(1)} {newService.serviceType === 'movie' ? 'Show' : 'Service'}</DialogTitle>
+        <DialogContent dividers>
+          <TextField select fullWidth sx={{ mt:2 }} label="Type" value={newService.serviceType} onChange={e => setNewService(ns => ({ ...ns, serviceType: e.target.value }))}>
+            {ticketTypes.map(t => <MenuItem key={t.key} value={t.key}>{t.label}</MenuItem>)}
+          </TextField>
+          <TextField fullWidth sx={{ mt:2 }} label="Name / Title" value={newService.name} onChange={e => setNewService(ns => ({ ...ns, name: e.target.value }))} />
+          <TextField fullWidth sx={{ mt:2 }} label={newService.serviceType === 'movie' ? 'City' : 'Origin'} value={newService.origin} onChange={e => setNewService(ns => ({ ...ns, origin: e.target.value }))} />
+          <TextField fullWidth sx={{ mt:2 }} label={newService.serviceType === 'movie' ? 'Theatre' : 'Destination'} value={newService.destination} onChange={e => setNewService(ns => ({ ...ns, destination: e.target.value }))} />
+          <TextField type="datetime-local" fullWidth sx={{ mt:2 }} label="Start Time" InputLabelProps={{ shrink:true }} value={newService.startTime} onChange={e => setNewService(ns => ({ ...ns, startTime: e.target.value }))} />
+          <TextField fullWidth sx={{ mt:2 }} label="Price (ETH)" value={newService.price} onChange={e => setNewService(ns => ({ ...ns, price: e.target.value }))} />
+          <TextField fullWidth sx={{ mt:2 }} label="Total Seats" type="number" value={newService.seats} onChange={e => setNewService(ns => ({ ...ns, seats: e.target.value }))} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setListOpen(false)}>Cancel</Button>
+          <Button onClick={handleListService} variant="contained" disabled={!ticketContract || !newService.name || !newService.price}>List</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Seat Selection Dialog */}
+      <Dialog open={!!seatDialog} onClose={() => setSeatDialog(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Select Seats</DialogTitle>
+        <DialogContent dividers>
+          {seatDialog && (
+            <>
+              <Typography variant="subtitle2">{seatDialog.name}</Typography>
+              <Typography variant="caption" color="text.secondary">{seatDialog.origin} {seatDialog.type !== 'movie' && '→ ' + seatDialog.destination}</Typography>
+              <SeatMap total={seatDialog.seats} selected={selectedSeats} onChange={setSelectedSeats} />
+              <Typography variant="body2" sx={{ mt:2 }}>Selected: {selectedSeats.join(', ') || 'None'}</Typography>
+              <Typography variant="body2">Total: {seatDialog.priceWei ? (Number(seatDialog.priceWei) / 1e18 * selectedSeats.length).toFixed(4) : 0} ETH</Typography>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSeatDialog(null)}>Close</Button>
+          <Button variant="contained" onClick={handleBookSeats} disabled={!selectedSeats.length}>Confirm</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

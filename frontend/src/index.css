@@ -12,6 +12,9 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #f5f5f5;
+  background-image: radial-gradient(circle at 25% 25%, rgba(120,120,255,0.15), transparent 60%),
+    radial-gradient(circle at 80% 60%, rgba(255,120,200,0.12), transparent 55%);
+  min-height: 100vh;
 }
 
 code {
@@ -57,6 +60,38 @@ code {
 .hero-gradient {
   background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
 }
+
+/* Glassy panels */
+.glass-panel {
+  background: rgba(255,255,255,0.65);
+  backdrop-filter: blur(10px) saturate(150%);
+  border: 1px solid rgba(255,255,255,0.3);
+  box-shadow: 0 4px 24px -6px rgba(0,0,0,0.15);
+}
+
+/* Subtle pulse animation for dynamic items */
+@keyframes pulseSoft { 0% { transform: scale(1); opacity:1;} 50% { transform: scale(1.02); opacity:0.92;} 100% { transform: scale(1); opacity:1;} }
+.pulse-soft { animation: pulseSoft 6s ease-in-out infinite; }
+
+/* Network accent ring (can be applied around avatars) */
+.accent-ring {
+  position: relative;
+}
+.accent-ring::after {
+  content: '';
+  position: absolute; inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--accent-color,#1976d2), transparent 65%);
+  filter: blur(4px) opacity(0.5);
+  z-index: -1;
+}
+
+/* Seat map transitions */
+button.MuiButton-root { transition: background-color .25s, transform .25s; }
+button.MuiButton-root:active { transform: translateY(1px) scale(.97); }
+
+/* Transaction panel fade shadow */
+.tx-panel-shadow { box-shadow: 0 8px 28px -4px rgba(0,0,0,0.28); }
 
 /* Card hover effects */
 .hover-card {

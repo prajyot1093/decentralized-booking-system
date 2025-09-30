@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import toast from 'react-hot-toast';
 import TicketABI from '../abi/TicketBookingSystem.json';
@@ -21,6 +21,7 @@ export const Web3Provider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [chainId, setChainId] = useState(null);
   const [ticketContract, setTicketContract] = useState(null);
+  const [transactions, setTransactions] = useState([]); // {hash, status: idle|pending|confirmed|error, summary}
   const TICKET_ADDRESS = process.env.REACT_APP_TICKET_ADDRESS || null; // set via .env
 
   // Check if wallet is already connected
@@ -38,6 +39,25 @@ export const Web3Provider = ({ children }) => {
       }
     }
   }, [signer, TICKET_ADDRESS]);
+
+  // Track a transaction
+  const trackTx = useCallback(async (txPromise, summary) => {
+    try {
+      const pendingIdx = Date.now();
+      setTransactions(prev => [...prev, { id: pendingIdx, hash: null, status: 'pending', summary }]);
+      const tx = await txPromise;
+      setTransactions(prev => prev.map(t => t.id === pendingIdx ? { ...t, hash: tx.hash, status: 'mining' } : t));
+      const receipt = await tx.wait();
+      setTransactions(prev => prev.map(t => t.id === pendingIdx ? { ...t, status: receipt.status === 1 ? 'confirmed' : 'error' } : t));
+      if (receipt.status === 1) toast.success(summary || 'Transaction confirmed'); else toast.error('Transaction failed');
+      return receipt;
+    } catch (err) {
+      console.error('Tx error', err);
+      toast.error(err?.shortMessage || err?.message || 'Transaction failed');
+      setTransactions(prev => prev.filter(t => t.status !== 'confirmed'));
+      throw err;
+    }
+  }, []);
 
   const checkConnection = async () => {
     if (typeof window.ethereum !== 'undefined') {
@@ -178,6 +198,8 @@ export const Web3Provider = ({ children }) => {
     getBalance,
     formatAddress,
     ticketContract,
+    transactions,
+    trackTx,
   };
 
   return (
