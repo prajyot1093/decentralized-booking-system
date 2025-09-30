@@ -18,7 +18,7 @@ const sampleResults = [
 ];
 
 function Tickets() {
-  const { ticketContract, isConnected } = useWeb3();
+  const { ticketContract, isConnected, trackTx } = useWeb3();
   const [type, setType] = React.useState('bus');
   const [search, setSearch] = React.useState({ from: '', to: '', date: '', movie: '', city: '' });
   const [onchainServices, setOnchainServices] = React.useState([]);
@@ -128,8 +128,10 @@ function Tickets() {
       const priceWei = ethers.parseEther(newService.price || '0');
       const seatCount = Number(newService.seats || 0);
       const typeIndex = { bus:0, train:1, movie:2 }[newService.serviceType];
-      const tx = await ticketContract.listService(typeIndex, newService.name, newService.origin, newService.destination, st, priceWei, seatCount);
-      await tx.wait();
+      await trackTx(
+        ticketContract.listService(typeIndex, newService.name, newService.origin, newService.destination, st, priceWei, seatCount),
+        `List ${newService.serviceType} service: ${newService.name}`
+      );
       setListOpen(false);
       setNewService({ serviceType: 'bus', name: '', origin: '', destination: '', startTime: '', price: '', seats: 40 });
       refresh();
@@ -143,8 +145,10 @@ function Tickets() {
     try {
       const service = seatDialog;
       const total = (Number(service.priceWei) * selectedSeats.length).toString();
-      const tx = await ticketContract.purchaseSeats(service.id, selectedSeats, { value: total });
-      await tx.wait();
+      await trackTx(
+        ticketContract.purchaseSeats(service.id, selectedSeats, { value: total }),
+        `Book ${selectedSeats.length} seat(s) for ${service.name}`
+      );
       setSeatDialog(null);
       setSelectedSeats([]);
       refresh();
@@ -233,7 +237,12 @@ function Tickets() {
             <>
               <Typography variant="subtitle2">{seatDialog.name}</Typography>
               <Typography variant="caption" color="text.secondary">{seatDialog.origin} {seatDialog.type !== 'movie' && '→ ' + seatDialog.destination}</Typography>
-              <SeatMap total={seatDialog.seats} selected={selectedSeats} onChange={setSelectedSeats} />
+              <SeatMap
+                total={seatDialog.seats}
+                selected={selectedSeats}
+                onChange={setSelectedSeats}
+                bookedChecker={(seat) => false /* TODO: integrate isSeatBooked call cache */}
+              />
               <Typography variant="body2" sx={{ mt:2 }}>Selected: {selectedSeats.join(', ') || 'None'}</Typography>
               <Typography variant="body2">Total: {seatDialog.priceWei ? (Number(seatDialog.priceWei) / 1e18 * selectedSeats.length).toFixed(4) : 0} ETH</Typography>
             </>
