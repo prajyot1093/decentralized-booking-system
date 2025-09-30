@@ -1,0 +1,43 @@
+{
+  "name": "decentralized-booking-system",
+  "version": "1.0.0",
+  "description": "A blockchain-powered booking system for hackathon",
+  "main": "index.js",
+  "scripts": {
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install && cd ../contracts && npm install",
+    "dev": "concurrently \"npm run blockchain\" \"npm run backend\" \"npm run frontend\"",
+    "blockchain": "cd contracts && npx hardhat node",
+    "backend": "cd backend && npm run dev",
+    "frontend": "cd frontend && npm start",
+    "test": "npm run test:contracts && npm run test:backend && npm run test:frontend",
+    "test:contracts": "cd contracts && npx hardhat test",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm test",
+    "deploy:local": "cd contracts && npx hardhat run scripts/deploy.js --network localhost",
+    "deploy:testnet": "cd contracts && npx hardhat run scripts/deploy.js --network goerli",
+    "build": "cd frontend && npm run build",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "format": "prettier --write ."
+  },
+  "keywords": [
+    "blockchain",
+    "solidity",
+    "ethereum",
+    "booking",
+    "dapp",
+    "react",
+    "nodejs",
+    "hackathon"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.0",
+    "prettier": "^3.0.3"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+}
