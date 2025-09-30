@@ -8,6 +8,13 @@ const ticketTypes = [
   { key: 'movie', label: 'Movie' }
 ];
 
+// Fallback demo data when contract not connected
+const sampleResults = [
+  { id: 1, type: 'bus', name: 'Express Coach', origin: 'City A', destination: 'City B', seats: 40, price: '0.01 ETH' },
+  { id: 2, type: 'train', name: 'Intercity Line', origin: 'City A', destination: 'City C', seats: 80, price: '0.015 ETH' },
+  { id: 3, type: 'movie', name: 'Sci-Fi Blockbuster', origin: 'Metropolis', destination: 'Grand Cinema', seats: 100, price: '0.005 ETH' }
+];
+
 function Tickets() {
   const { ticketContract, isConnected } = useWeb3();
   const [type, setType] = React.useState('bus');
