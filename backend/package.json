@@ -1,0 +1,44 @@
+{
+  "name": "decentralized-booking-backend",
+  "version": "1.0.0",
+  "description": "Backend API for decentralized booking system",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "dotenv": "^16.3.1",
+    "ethers": "^6.7.1",
+    "web3": "^4.1.1",
+    "multer": "^1.4.5-lts.1",
+    "express-rate-limit": "^6.10.0",
+    "express-validator": "^7.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "axios": "^1.5.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "jest": "^29.6.4",
+    "supertest": "^6.3.3",
+    "eslint": "^8.47.0"
+  },
+  "keywords": [
+    "express",
+    "nodejs",
+    "blockchain",
+    "web3",
+    "api"
+  ],
+  "author": "",
+  "license": "MIT"
+}
