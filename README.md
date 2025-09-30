@@ -143,6 +143,32 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Showcase modern web development practices
 - Build a user-friendly interface
 
+## 📊 Project Status
+
+✅ **Smart Contract Architecture** - Complete  
+✅ **Frontend User Interface** - Complete  
+✅ **Web3 Wallet Integration** - Complete  
+✅ **Property Listing System** - Complete  
+✅ **Booking Management** - Complete  
+✅ **Responsive Design** - Complete  
+🔄 **Backend API** - In Progress  
+🔄 **Testing Suite** - In Progress  
+⏳ **Deployment** - Pending  
+
+## 🎯 Live Demo
+
+Once deployed, the live demo will be available at:
+- **Frontend**: TBD
+- **Smart Contracts**: TBD (Testnet)
+
+## 📈 Future Enhancements
+
+- Multi-token payment support
+- Dispute resolution system
+- Property reviews and ratings
+- Mobile app development
+- Integration with IPFS for image storage
+
 ---
 
 **Built with ❤️ for the blockchain community**
