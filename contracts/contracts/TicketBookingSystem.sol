@@ -2,8 +2,8 @@
 pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+// Counters removed in OZ v5; using simple uint256 counters
 
 /**
  * @title TicketBookingSystem
@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
  * @dev This is a simplified MVP contract designed for hackathon demo purposes.
  */
 contract TicketBookingSystem is Ownable, ReentrancyGuard {
-    using Counters for Counters.Counter;
+    constructor() Ownable(msg.sender) {}
 
     enum ServiceType { Bus, Train, Movie }
 
@@ -39,8 +39,8 @@ contract TicketBookingSystem is Ownable, ReentrancyGuard {
         bool refunded;
     }
 
-    Counters.Counter private _serviceIds;
-    Counters.Counter private _ticketIds;
+    uint256 private _serviceIds;
+    uint256 private _ticketIds;
 
     mapping(uint256 => Service) public services;
     mapping(uint256 => Ticket) public tickets; // ticketId => Ticket
@@ -61,7 +61,7 @@ contract TicketBookingSystem is Ownable, ReentrancyGuard {
     error AlreadyRefunded();
 
     modifier validService(uint256 serviceId) {
-        require(serviceId > 0 && serviceId <= _serviceIds.current(), "Invalid service");
+        require(serviceId > 0 && serviceId <= _serviceIds, "Invalid service");
         _;
     }
 
@@ -89,8 +89,8 @@ contract TicketBookingSystem is Ownable, ReentrancyGuard {
         require(totalSeats > 0 && totalSeats <= 256, "Seats must be 1-256");
         require(startTime > block.timestamp, "Start must be future");
 
-        _serviceIds.increment();
-        uint256 newId = _serviceIds.current();
+    _serviceIds += 1;
+    uint256 newId = _serviceIds;
         services[newId] = Service({
             id: newId,
             serviceType: serviceType,
@@ -139,8 +139,8 @@ contract TicketBookingSystem is Ownable, ReentrancyGuard {
             svc.seatsBitmap |= mask;
         }
 
-        _ticketIds.increment();
-        uint256 ticketId = _ticketIds.current();
+    _ticketIds += 1;
+    uint256 ticketId = _ticketIds;
         tickets[ticketId] = Ticket({
             id: ticketId,
             serviceId: serviceId,

@@ -32,6 +32,9 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
+  "start:lan": "cross-env HOST=0.0.0.0 react-scripts start & node scripts/lan-info.js",
+    "serve:build": "serve -s build -l 0.0.0.0:5000",
+    "tunnel": "node scripts/tunnel.js",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix"
   },
@@ -54,6 +57,10 @@
     ]
   },
   "devDependencies": {
-    "eslint": "^8.47.0"
+    "eslint": "^8.47.0",
+    "cross-env": "^7.0.3",
+    "serve": "^14.2.1",
+    "localtunnel": "^2.0.2",
+    "qrcode-terminal": "^0.12.0"
   }
 }

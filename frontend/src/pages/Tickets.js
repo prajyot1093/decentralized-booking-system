@@ -1,6 +1,8 @@
 import React from 'react';
-import { Box, Container, Typography, Tabs, Tab, Grid, Card, CardContent, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, MenuItem } from '@mui/material';
+import { Box, Container, Typography, Tabs, Tab, Grid, Card, CardContent, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, Chip, Stack, IconButton, InputAdornment, Tooltip, Divider } from '@mui/material';
 import SeatMap from '../components/SeatMap';
+import ServiceSkeleton from '../components/ServiceSkeleton';
+import { Search, Refresh, FilterAltOff, Schedule } from '@mui/icons-material';
 import { ethers } from 'ethers';
 import { useWeb3 } from '../context/Web3Context';
 
@@ -17,15 +19,27 @@ const sampleResults = [
   { id: 3, type: 'movie', name: 'Sci-Fi Blockbuster', origin: 'Metropolis', destination: 'Grand Cinema', seats: 100, price: '0.005 ETH' }
 ];
 
+// Seat map schemas per service type (basic illustrative defaults)
+const seatSchemas = {
+  bus: { mode: 'bus', rows: 10, seatsPerRow: 4, aisleAfter: [2] },
+  train: { mode: 'train', rows: 12, seatsPerRow: 6, aisleAfter: [3] },
+  movie: { mode: 'cinema', rows: 12, seatsPerRow: 10, aisleAfter: [5] }
+};
+
 function Tickets() {
   const { ticketContract, isConnected, trackTx } = useWeb3();
   const [type, setType] = React.useState('bus');
   const [search, setSearch] = React.useState({ from: '', to: '', date: '', movie: '', city: '' });
   const [onchainServices, setOnchainServices] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
   const [listOpen, setListOpen] = React.useState(false);
   const [newService, setNewService] = React.useState({ serviceType: 'bus', name: '', origin: '', destination: '', startTime: '', price: '', seats: 40 });
   const [seatDialog, setSeatDialog] = React.useState(null); // service object
   const [selectedSeats, setSelectedSeats] = React.useState([]);
+  const [sort, setSort] = React.useState('time');
+  const [query, setQuery] = React.useState('');
+  const [showDemoNotice, setShowDemoNotice] = React.useState(true);
 
   const handleChange = (_, newValue) => setType(newValue);
 
@@ -63,43 +77,52 @@ function Tickets() {
     );
   };
 
+  // Optimized parallel load (reduces sequential RPC latency) with graceful fallback
   React.useEffect(() => {
-    // Placeholder: Without an enumerable list on-chain we assume first 10 IDs
-    const load = async () => {
-      if (!ticketContract) return;
-      const services = [];
-      for (let i = 1; i <= 10; i++) {
-        try {
-          const svc = await ticketContract.getService(i);
-          if (svc.id.toString() === '0') continue; // uninitialized
-          services.push({
-            id: Number(svc.id),
-            type: ['bus','train','movie'][Number(svc.serviceType)] || 'bus',
-            name: svc.name,
-            origin: svc.origin,
-            destination: svc.destination,
-            startTime: Number(svc.startTime),
-            seats: Number(svc.totalSeats),
-            priceWei: svc.basePriceWei,
-            isActive: svc.isActive,
-          });
-        } catch (e) {
-          // stop if call fails (likely out of range)
-          break;
-        }
+    if (!ticketContract) return;
+    let ignore = false;
+    const MAX_IDS = 30; // allow more services
+    setLoading(true); setError(null);
+    (async () => {
+      try {
+        const calls = Array.from({ length: MAX_IDS }, (_, i) => i + 1).map(async (id) => {
+          try {
+            const svc = await ticketContract.getService(id);
+            if (svc.id && svc.id.toString() !== '0') {
+              return {
+                id: Number(svc.id),
+                type: ['bus','train','movie'][Number(svc.serviceType)] || 'bus',
+                name: svc.name,
+                origin: svc.origin,
+                destination: svc.destination,
+                startTime: Number(svc.startTime),
+                seats: Number(svc.totalSeats),
+                priceWei: svc.basePriceWei,
+                isActive: svc.isActive,
+              };
+            }
+          } catch { /* ignore individual service errors */ }
+          return null;
+        });
+        const results = (await Promise.all(calls)).filter(Boolean);
+        if (!ignore) setOnchainServices(results);
+      } catch (err) {
+        console.error('Load services failed', err);
+        if (!ignore) setError('Failed to load services');
+      } finally {
+        if (!ignore) setLoading(false);
       }
-      setOnchainServices(services);
-    };
-    load();
+    })();
+    return () => { ignore = true; };
   }, [ticketContract]);
 
   const refresh = () => {
     if (ticketContract) {
-      setOnchainServices([]);
+      setLoading(true); setError(null); setOnchainServices([]);
       // trigger effect by resetting contract reference logic implicitly; call load inline
       (async () => {
         const services = [];
-        for (let i = 1; i <= 20; i++) {
+        for (let i = 1; i <= 30; i++) {
           try {
             const svc = await ticketContract.getService(i);
             if (svc.id.toString() === '0') continue;
@@ -117,6 +140,7 @@ function Tickets() {
           } catch { break; }
         }
         setOnchainServices(services);
+        setLoading(false);
       })();
     }
   };
@@ -156,9 +180,21 @@ function Tickets() {
   };
 
   // Replace sampleResults when contract connected
-  const displayResults = (isConnected && onchainServices.length > 0)
-    ? onchainServices.filter(r => r.type === type)
-    : sampleResults.filter(r => r.type === type);
+  const displayResults = React.useMemo(() => {
+    const base = (isConnected && onchainServices.length) ? onchainServices : sampleResults;
+    let subset = base.filter(r => r.type === type);
+    if (query) {
+      const q = query.toLowerCase();
+      subset = subset.filter(r =>
+        r.name.toLowerCase().includes(q) ||
+        r.origin.toLowerCase().includes(q) ||
+        r.destination.toLowerCase().includes(q)
+      );
+    }
+    if (sort === 'seats') subset = subset.slice().sort((a,b) => b.seats - a.seats);
+    if (sort === 'time') subset = subset.slice().sort((a,b) => (a.startTime||0) - (b.startTime||0));
+    return subset;
+  }, [isConnected, onchainServices, type, query, sort]);
 
   const formatPrice = (r) => {
     if (r.priceWei) {
@@ -168,12 +204,12 @@ function Tickets() {
   };
 
   return (
-    <Box sx={{ py: 4 }}>
+    <Box sx={{ py: 4, color: 'text.primary' }} className="tickets-section">
       <Container maxWidth="lg">
-        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 2 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 2, color: 'text.primary', textShadow: '0 0 6px rgba(0,229,255,0.25)' }}>
           Decentralized Ticket Booking
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 3, fontSize: '1.05rem' }}>
           Book bus, train and movie tickets directly on-chain.
         </Typography>
 
@@ -181,26 +217,72 @@ function Tickets() {
           {ticketTypes.map(t => <Tab key={t.key} label={t.label} value={t.key} />)}
         </Tabs>
 
-        {renderSearch()}
+        {/* Filter & Search Toolbar */}
+        <Box sx={{ display:'flex', flexDirection:'column', gap:2, mt:1 }}>
+          <Stack direction={{ xs:'column', md:'row' }} spacing={2} alignItems={{ xs:'stretch', md:'center' }}>
+            <TextField
+              placeholder="Search name / origin / destination"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }}
+              fullWidth
+            />
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Chip label="Sort: Time" color={sort==='time'?'primary':'default'} size="small" onClick={() => setSort('time')} clickable />
+              <Chip label="Sort: Seats" color={sort==='seats'?'primary':'default'} size="small" onClick={() => setSort('seats')} clickable />
+              {query && <Chip label="Clear" onClick={() => setQuery('')} size="small" icon={<FilterAltOff />} />}
+            </Stack>
+            <Tooltip title="Refresh" arrow>
+              <span>
+                <IconButton disabled={!ticketContract || loading} onClick={refresh} color="primary"><Refresh /></IconButton>
+              </span>
+            </Tooltip>
+          </Stack>
+          {renderSearch()}
+        </Box>
+
+        {error && <Typography color="error" variant="body2" sx={{ mt:1 }}>{error}</Typography>}
+        {showDemoNotice && !isConnected && (
+          <Box sx={{ mt:2, p:1.5, border:'1px solid rgba(255,255,255,0.12)', borderRadius:2, fontSize:'.85rem', background:'rgba(255,255,255,0.04)' }}>
+            Showing demo data. Connect wallet to load on-chain services. <Button size="small" onClick={() => setShowDemoNotice(false)} sx={{ ml:1 }}>Dismiss</Button>
+          </Box>
+        )}
 
         <Grid container spacing={3} sx={{ mt: 2 }}>
-          {displayResults.map(result => (
-            <Grid item xs={12} md={4} key={result.id}>
-              <Card className="hover-card" sx={{ transition: '0.3s' }}>
+          {loading && Array.from({ length: 6 }).map((_,i) => (
+            <Grid item xs={12} md={4} key={`sk-${i}`}><ServiceSkeleton /></Grid>
+          ))}
+          {!loading && displayResults.map(result => (
+            <Grid item xs={12} md={4} key={result.id+result.name}>
+              <Card className="hover-card" sx={{ position:'relative', transition: '0.3s', color: 'text.primary', backdropFilter: 'blur(10px)', background: 'linear-gradient(155deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))' }}>
                 <CardContent>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{result.name}</Typography>
+                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary', pr:1 }}>{result.name}</Typography>
+                    {result.isActive === false && <Chip label="INACTIVE" size="small" color="warning" />}
+                  </Stack>
                   {type === 'movie' ? (
                     <Typography variant="body2" color="text.secondary">City: {result.origin}</Typography>
                   ) : (
-                    <Typography variant="body2" color="text.secondary">{result.origin} → {result.destination}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ display:'flex', alignItems:'center', gap:.5 }}>{result.origin} → {result.destination}</Typography>
                   )}
-                  <Typography variant="body2" sx={{ mt: 1 }}>Seats: {result.seats}</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 'bold', mt: 1 }}>Price: {formatPrice(result)}</Typography>
+                  <Stack direction="row" spacing={1} sx={{ mt:1, flexWrap:'wrap' }}>
+                    <Chip size="small" icon={<Schedule fontSize="inherit" />} label={result.startTime ? new Date(result.startTime*1000).toLocaleString() : 'N/A'} variant="outlined" />
+                    <Chip size="small" label={`${result.seats} seats`} variant="outlined" />
+                    <Chip size="small" label={formatPrice(result)} color="secondary" />
+                  </Stack>
                   <Button disabled={!isConnected} variant="contained" color="primary" fullWidth sx={{ mt: 2 }} onClick={() => { setSeatDialog(result); setSelectedSeats([]); }}>Book</Button>
                 </CardContent>
               </Card>
             </Grid>
           ))}
+          {!loading && !displayResults.length && (
+            <Grid item xs={12}>
+              <Box sx={{ p:4, textAlign:'center', border:'1px dashed rgba(255,255,255,0.15)', borderRadius:3 }}>
+                <Typography variant="body1" sx={{ mb:1 }}>No services found.</Typography>
+                <Button size="small" onClick={refresh} disabled={loading || !ticketContract}>Reload</Button>
+              </Box>
+            </Grid>
+          )}
         </Grid>
 
         <Box sx={{ mt:4, display:'flex', gap:2 }}>
@@ -237,12 +319,21 @@ function Tickets() {
             <>
               <Typography variant="subtitle2">{seatDialog.name}</Typography>
               <Typography variant="caption" color="text.secondary">{seatDialog.origin} {seatDialog.type !== 'movie' && '→ ' + seatDialog.destination}</Typography>
+              <Divider sx={{ my:1.5, opacity:.3 }} />
               <SeatMap
+                schema={seatSchemas[seatDialog.type]}
                 total={seatDialog.seats}
                 selected={selectedSeats}
                 onChange={setSelectedSeats}
-                bookedChecker={(seat) => false /* TODO: integrate isSeatBooked call cache */}
+                bookedChecker={(seat) => false /* TODO integrate on-chain seat booked cache */}
+                maxSelectable={10}
+                ariaLabel={`Seat map for ${seatDialog.name}`}
               />
+              <Box sx={{ mt:2, display:'flex', gap:2, flexWrap:'wrap', fontSize:12 }}>
+                <Chip size="small" label="Available" variant="outlined" />
+                <Chip size="small" label="Selected" color="primary" />
+                <Chip size="small" label="Booked" color="error" variant="outlined" />
+              </Box>
               <Typography variant="body2" sx={{ mt:2 }}>Selected: {selectedSeats.join(', ') || 'None'}</Typography>
               <Typography variant="body2">Total: {seatDialog.priceWei ? (Number(seatDialog.priceWei) / 1e18 * selectedSeats.length).toFixed(4) : 0} ETH</Typography>
             </>

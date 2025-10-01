@@ -1,19 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
+// Counters utility removed in OZ v5; using simple uint256 counters
 
 /**
  * @title DecentralizedBookingSystem
  * @dev Main contract for handling property bookings on blockchain
  */
 contract DecentralizedBookingSystem is ReentrancyGuard, Ownable {
-    using Counters for Counters.Counter;
-    
-    Counters.Counter private _propertyIds;
-    Counters.Counter private _bookingIds;
+    constructor() Ownable(msg.sender) {}
+    uint256 private _propertyIds;
+    uint256 private _bookingIds;
     
     // Property structure
     struct Property {
@@ -97,7 +96,7 @@ contract DecentralizedBookingSystem is ReentrancyGuard, Ownable {
     }
     
     modifier validProperty(uint256 _propertyId) {
-        require(_propertyId > 0 && _propertyId <= _propertyIds.current(), "Invalid property ID");
+        require(_propertyId > 0 && _propertyId <= _propertyIds, "Invalid property ID");
         require(properties[_propertyId].isActive, "Property not active");
         _;
     }
@@ -116,8 +115,8 @@ contract DecentralizedBookingSystem is ReentrancyGuard, Ownable {
         require(bytes(_name).length > 0, "Name required");
         require(_pricePerNight > 0, "Price must be greater than 0");
         
-        _propertyIds.increment();
-        uint256 newPropertyId = _propertyIds.current();
+    _propertyIds += 1;
+    uint256 newPropertyId = _propertyIds;
         
         properties[newPropertyId] = Property({
             id: newPropertyId,
@@ -156,8 +155,8 @@ contract DecentralizedBookingSystem is ReentrancyGuard, Ownable {
         
         require(msg.value >= totalAmount, "Insufficient payment");
         
-        _bookingIds.increment();
-        uint256 newBookingId = _bookingIds.current();
+    _bookingIds += 1;
+    uint256 newBookingId = _bookingIds;
         
         bookings[newBookingId] = Booking({
             id: newBookingId,
@@ -301,11 +300,6 @@ contract DecentralizedBookingSystem is ReentrancyGuard, Ownable {
         return guestBookings[_guest];
     }
     
-    function getTotalProperties() external view returns (uint256) {
-        return _propertyIds.current();
-    }
-    
-    function getTotalBookings() external view returns (uint256) {
-        return _bookingIds.current();
-    }
+    function getTotalProperties() external view returns (uint256) { return _propertyIds; }
+    function getTotalBookings() external view returns (uint256) { return _bookingIds; }
 }
