@@ -8,8 +8,7 @@ import {
   Grid,
   Chip,
   Button,
-  Avatar,
-  Divider,
+  
   Alert,
   Tabs,
   Tab,
@@ -199,6 +198,11 @@ const MyBookings = () => {
                   <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
                     {booking.totalAmount} ETH
                   </Typography>
+                  {account && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'none', md: 'block' } }}>
+                      Account: {account.slice(0,6)}...{account.slice(-4)}
+                    </Typography>
+                  )}
                 </Box>
 
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>

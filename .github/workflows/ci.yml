@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Cache node modules (root)
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ matrix.node-version }}-root-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ matrix.node-version }}-root-
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Cache contracts deps
+        uses: actions/cache@v4
+        with:
+          path: contracts/node_modules
+          key: ${{ runner.os }}-contracts-${{ hashFiles('contracts/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-contracts-
+
+      - name: Cache backend deps
+        uses: actions/cache@v4
+        with:
+          path: backend/node_modules
+          key: ${{ runner.os }}-backend-${{ hashFiles('backend/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-backend-
+
+      - name: Cache frontend deps
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-frontend-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-frontend-
+
+      - name: Install backend & frontend deps
+        run: |
+          cd contracts && npm ci || true
+          cd ../backend && npm ci || true
+          cd ../frontend && npm ci || true
+
+      - name: Lint frontend
+        run: |
+          cd frontend
+          npm run lint
+
+      - name: Run Hardhat tests (optional)
+        env:
+          CI: true
+        run: |
+          # If the environment needed for network tests isn't present, run unit tests against Hardhat's in-memory network
+          cd contracts
+          if [ -f .env ]; then
+            echo ".env present; running full tests"
+            npm test || exit 1
+          else
+            echo ".env missing; running npx hardhat test against local in-memory network"
+            npx hardhat test || exit 1
+          fi
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Upload frontend build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/build

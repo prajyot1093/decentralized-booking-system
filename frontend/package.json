@@ -36,7 +36,8 @@
     "serve:build": "serve -s build -l 0.0.0.0:5000",
     "tunnel": "node scripts/tunnel.js",
     "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix"
+    "lint:fix": "eslint src/ --fix",
+    "lint:ci": "eslint src/ --max-warnings=0"
   },
   "eslintConfig": {
     "extends": [

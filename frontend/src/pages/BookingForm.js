@@ -17,11 +17,8 @@ import {
   Rating,
 } from '@mui/material';
 import {
-  CalendarToday,
-  Person,
   AttachMoney,
   LocationOn,
-  Star,
   CheckCircle,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -189,7 +186,7 @@ const BookingForm = () => {
             </Button>
             <Button 
               variant="outlined" 
-              onClick={() => navigate('/properties')}
+              onClick={() => { resetBooking(); navigate('/properties'); }}
               sx={{ borderRadius: '20px' }}
             >
               Book Another Property
@@ -202,6 +199,11 @@ const BookingForm = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
+      {account && (
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
+          Connected: {account.slice(0,6)}...{account.slice(-4)}
+        </Typography>
+      )}
       <Grid container spacing={4}>
         {/* Property Info */}
         <Grid item xs={12} md={6}>

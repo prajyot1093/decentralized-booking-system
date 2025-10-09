@@ -32,8 +32,8 @@ import {
   AttachMoney,
   Star,
   BookOnline,
-  TrendingUp,
 } from '@mui/icons-material';
+// ...existing code...
 import { useWeb3 } from '../context/Web3Context';
 
 // Mock properties data
@@ -283,6 +283,9 @@ const MyProperties = () => {
             Manage your listed properties and track performance
           </Typography>
         </Box>
+        {account && (
+          <Typography variant="caption" color="text.secondary">Account: {account.slice(0,6)}...{account.slice(-4)}</Typography>
+        )}
         <Button
           variant="contained"
           startIcon={<Add />}

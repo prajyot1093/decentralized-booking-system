@@ -1,7 +1,6 @@
 import React from 'react';
 import { Box, Typography, Button, Container } from '@mui/material';
 import { Home, Refresh } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {

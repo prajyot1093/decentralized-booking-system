@@ -19,7 +19,6 @@ import {
   Search,
   LocationOn,
   AttachMoney,
-  Star,
   Wifi,
   LocalParking,
   Pool,
