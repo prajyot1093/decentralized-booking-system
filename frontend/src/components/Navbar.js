@@ -32,6 +32,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { useThemeMode } from '../context/ThemeModeContext';
+import ConnectionStatus from './ConnectionStatus';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -80,6 +81,9 @@ const Navbar = () => {
         <Box sx={{ display:{ xs:'flex', md:'none' } }}>
           <Button variant="outlined" size="small" onClick={openMobile} sx={{ borderColor:'rgba(255,255,255,0.25)', color:'#fff' }}>Menu</Button>
         </Box>
+
+        {/* Connection Status */}
+        <ConnectionStatus />
 
         {/* Wallet / Actions */}
         {!isConnected ? (

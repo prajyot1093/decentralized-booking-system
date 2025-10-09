@@ -9,6 +9,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import TransactionPanel from './components/TransactionPanel';
 import { Web3Provider, useWeb3 } from './context/Web3Context';
 import { ThemeModeProvider, useThemeMode } from './context/ThemeModeContext';
+import { ConnectivityProvider } from './context/ConnectivityContext';
 import { buildTheme } from './theme/createMuiTheme';
 
 // Lazy pages (declared after all import statements to satisfy import/first rule)
@@ -63,13 +64,15 @@ function ThemedAppContainer() {
 function App() {
   return (
     <ErrorBoundary>
-      <Web3Provider>
-        <ThemeModeProvider>
-          <Router>
-            <ThemedAppContainer />
-          </Router>
-        </ThemeModeProvider>
-      </Web3Provider>
+      <ConnectivityProvider>
+        <Web3Provider>
+          <ThemeModeProvider>
+            <Router>
+              <ThemedAppContainer />
+            </Router>
+          </ThemeModeProvider>
+        </Web3Provider>
+      </ConnectivityProvider>
     </ErrorBoundary>
   );
 }

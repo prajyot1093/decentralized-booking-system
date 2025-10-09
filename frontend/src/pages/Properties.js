@@ -4,7 +4,6 @@ import {
   Container,
   Grid,
   Card,
-  CardMedia,
   CardContent,
   Typography,
   Button,
@@ -12,219 +11,201 @@ import {
   TextField,
   InputAdornment,
   Paper,
-  Rating,
   Skeleton,
+  IconButton,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
 import {
   Search,
   LocationOn,
   AttachMoney,
-  Wifi,
-  LocalParking,
-  Pool,
-  Restaurant,
+  Refresh,
+  Train,
+  DirectionsBus,
+  Movie,
+  Event,
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
+import { useRealTimeServices } from '../hooks/useRealTimeData';
+import { useConnectivity } from '../context/ConnectivityContext';
+import { SERVICE_TYPES, formatTime } from '../services/api';
 
-// Mock data for properties
-const mockProperties = [
-  {
-    id: 1,
-    name: 'Luxury Beachfront Villa',
-    location: 'Malibu, California',
-    price: 0.05, // ETH per night
-    rating: 4.8,
-    reviews: 24,
-    image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=500&q=80',
-    amenities: ['wifi', 'parking', 'pool'],
-    description: 'Stunning oceanfront property with private beach access and panoramic views.'
-  },
-  {
-    id: 2,
-    name: 'Modern City Loft',
-    location: 'Downtown Miami, Florida',
-    price: 0.03,
-    rating: 4.6,
-    reviews: 18,
-    image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=500&q=80',
-    amenities: ['wifi', 'restaurant'],
-    description: 'Contemporary loft in the heart of the city with skyline views.'
-  },
-  {
-    id: 3,
-    name: 'Cozy Mountain Cabin',
-    location: 'Aspen, Colorado',
-    price: 0.025,
-    rating: 4.9,
-    reviews: 31,
-    image: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=500&q=80',
-    amenities: ['wifi', 'parking'],
-    description: 'Rustic cabin surrounded by nature, perfect for a peaceful getaway.'
-  },
-  {
-    id: 4,
-    name: 'Penthouse Suite',
-    location: 'Manhattan, New York',
-    price: 0.08,
-    rating: 4.7,
-    reviews: 42,
-    image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=500&q=80',
-    amenities: ['wifi', 'restaurant', 'pool'],
-    description: 'Luxury penthouse with breathtaking city views and premium amenities.'
-  },
-  {
-    id: 5,
-    name: 'Desert Oasis Resort',
-    location: 'Scottsdale, Arizona',
-    price: 0.04,
-    rating: 4.5,
-    reviews: 19,
-    image: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=500&q=80',
-    amenities: ['wifi', 'pool', 'restaurant'],
-    description: 'Resort-style property with spa services and desert landscape views.'
-  },
-  {
-    id: 6,
-    name: 'Historic Boutique Hotel',
-    location: 'Savannah, Georgia',
-    price: 0.035,
-    rating: 4.4,
-    reviews: 27,
-    image: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=500&q=80',
-    amenities: ['wifi', 'restaurant'],
-    description: 'Charming historic property in the heart of the historic district.'
-  }
-];
+
 
 const Properties = () => {
-  const [properties, setProperties] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredProperties, setFilteredProperties] = useState([]);
+  const [typeFilter, setTypeFilter] = useState('');
+  const [filteredServices, setFilteredServices] = useState([]);
+  
+  // Real-time services data
+  const { 
+    services, 
+    loading, 
+    error, 
+    lastUpdated, 
+    refresh
+  } = useRealTimeServices();
+  
+  // Connectivity status
+  const { backendStatus, isFullyConnected } = useConnectivity();
 
-  // Simulate loading properties
+  // Filter services based on search and type
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setProperties(mockProperties);
-      setFilteredProperties(mockProperties);
-      setLoading(false);
-    }, 1500);
+    let filtered = services;
+    
+    if (searchTerm) {
+      filtered = filtered.filter(service =>
+        service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        service.origin.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        service.destination.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    if (typeFilter) {
+      filtered = filtered.filter(service =>
+        service.serviceType === parseInt(typeFilter)
+      );
+    }
+    
+    setFilteredServices(filtered);
+  }, [searchTerm, typeFilter, services]);
 
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Filter properties based on search
-  useEffect(() => {
-    const filtered = properties.filter(property =>
-      property.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      property.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      property.description.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredProperties(filtered);
-  }, [searchTerm, properties]);
-
-  const getAmenityIcon = (amenity) => {
-    switch (amenity) {
-      case 'wifi': return <Wifi fontSize="small" />;
-      case 'parking': return <LocalParking fontSize="small" />;
-      case 'pool': return <Pool fontSize="small" />;
-      case 'restaurant': return <Restaurant fontSize="small" />;
-      default: return null;
+  const getServiceIcon = (serviceType) => {
+    const type = SERVICE_TYPES[serviceType];
+    switch (serviceType) {
+      case 0: return <DirectionsBus fontSize="large" sx={{ color: type?.color }} />;
+      case 1: return <Train fontSize="large" sx={{ color: type?.color }} />;
+      case 2: return <Movie fontSize="large" sx={{ color: type?.color }} />;
+      case 3: return <Event fontSize="large" sx={{ color: type?.color }} />;
+      default: return <Event fontSize="large" />;
     }
   };
 
-  const PropertyCard = ({ property }) => (
-    <Card 
-      className="hover-card"
-      sx={{ 
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        transition: 'all 0.3s ease',
-        cursor: 'pointer',
-      }}
-    >
-      <CardMedia
-        component="img"
-        height="200"
-        image={property.image}
-        alt={property.name}
-        sx={{ objectFit: 'cover' }}
-      />
-      <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-          {property.name}
-        </Typography>
-        
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-          <LocationOn color="action" fontSize="small" />
-          <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
-            {property.location}
-          </Typography>
-        </Box>
+  const getAvailabilityColor = (occupancyRate) => {
+    if (occupancyRate < 30) return 'success';
+    if (occupancyRate < 70) return 'warning';
+    return 'error';
+  };
 
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Rating value={property.rating} precision={0.1} size="small" readOnly />
-          <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-            {property.rating} ({property.reviews} reviews)
-          </Typography>
-        </Box>
+  const getAvailabilityText = (occupancyRate) => {
+    if (occupancyRate < 30) return 'Available';
+    if (occupancyRate < 70) return 'Limited';
+    return 'Nearly Full';
+  };
 
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexGrow: 1 }}>
-          {property.description}
-        </Typography>
+  const ServiceCard = ({ service }) => {
+    const serviceType = SERVICE_TYPES[service.serviceType] || { name: 'Unknown', color: '#666' };
+    const occupancyRate = ((service.totalSeats - (service.availableSeats?.length || service.totalSeats)) / service.totalSeats) * 100;
 
-        {/* Amenities */}
-        <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-          {property.amenities.map((amenity, index) => (
-            <Chip
-              key={index}
-              icon={getAmenityIcon(amenity)}
-              label={amenity}
-              size="small"
-              variant="outlined"
-            />
-          ))}
-        </Box>
+    return (
+      <Card 
+        className="hover-card"
+        sx={{ 
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          transition: 'all 0.3s ease',
+          cursor: 'pointer',
+          border: '2px solid transparent',
+          '&:hover': {
+            borderColor: 'primary.main',
+            transform: 'translateY(-4px)',
+            boxShadow: 4,
+          }
+        }}
+      >
+        <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* Service Header */}
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            {getServiceIcon(service.serviceType)}
+            <Box sx={{ ml: 2, flexGrow: 1 }}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                {service.name}
+              </Typography>
+              <Chip 
+                label={serviceType.name} 
+                size="small" 
+                sx={{ 
+                  backgroundColor: serviceType.color, 
+                  color: 'white',
+                  fontWeight: 'bold'
+                }} 
+              />
+            </Box>
+          </Box>
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <AttachMoney color="primary" />
-            <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
-              {property.price} ETH
-            </Typography>
+          {/* Route Information */}
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <LocationOn color="action" fontSize="small" />
             <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
-              /night
+              {service.origin} → {service.destination}
             </Typography>
           </Box>
-          
-          <Button
-            variant="contained"
-            component={Link}
-            to={`/book/${property.id}`}
-            sx={{ borderRadius: '20px' }}
-          >
-            Book Now
-          </Button>
-        </Box>
-      </CardContent>
-    </Card>
-  );
 
-  const PropertySkeleton = () => (
+          {/* Timing */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              <strong>Departure:</strong> {formatTime(service.startTime)}
+            </Typography>
+          </Box>
+
+          {/* Availability Status */}
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <Chip
+              label={getAvailabilityText(occupancyRate)}
+              size="small"
+              color={getAvailabilityColor(occupancyRate)}
+              variant="outlined"
+            />
+            <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+              {service.totalSeats - (service.availableSeats?.length || service.totalSeats)} / {service.totalSeats} seats
+            </Typography>
+          </Box>
+
+          {/* Pricing and Action */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <AttachMoney color="primary" />
+              <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
+                {service.basePriceEth} ETH
+              </Typography>
+            </Box>
+            
+            <Button
+              variant="contained"
+              component={Link}
+              to={`/book/${service.id}`}
+              disabled={occupancyRate >= 100}
+              sx={{ borderRadius: '20px' }}
+            >
+              {occupancyRate >= 100 ? 'Sold Out' : 'Book Now'}
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const ServiceSkeleton = () => (
     <Card sx={{ height: '100%' }}>
-      <Skeleton variant="rectangular" height={200} />
       <CardContent>
-        <Skeleton variant="text" sx={{ fontSize: '1.5rem', mb: 1 }} />
-        <Skeleton variant="text" width="60%" sx={{ mb: 1 }} />
-        <Skeleton variant="text" width="80%" sx={{ mb: 2 }} />
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Skeleton variant="circular" width={48} height={48} />
+          <Box sx={{ ml: 2, flexGrow: 1 }}>
+            <Skeleton variant="text" sx={{ fontSize: '1.5rem', mb: 0.5 }} />
+            <Skeleton variant="rounded" width={80} height={24} />
+          </Box>
+        </Box>
+        <Skeleton variant="text" width="70%" sx={{ mb: 1 }} />
+        <Skeleton variant="text" width="60%" sx={{ mb: 2 }} />
         <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-          <Skeleton variant="rounded" width={60} height={24} />
-          <Skeleton variant="rounded" width={60} height={24} />
+          <Skeleton variant="rounded" width={80} height={24} />
+          <Skeleton variant="text" width="40%" />
         </Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Skeleton variant="text" width="40%" />
-          <Skeleton variant="rounded" width={80} height={36} />
+          <Skeleton variant="text" width="30%" />
+          <Skeleton variant="rounded" width={100} height={36} />
         </Box>
       </CardContent>
     </Card>
@@ -234,65 +215,127 @@ const Properties = () => {
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Header */}
       <Typography variant="h3" align="center" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
-        Discover Properties
+        Available Services
       </Typography>
       <Typography variant="h6" align="center" color="text.secondary" sx={{ mb: 4 }}>
-        Find the perfect place for your next stay
+        Book transportation, events, and experiences on the blockchain
       </Typography>
 
-      {/* Search Bar */}
-      <Paper elevation={2} sx={{ p: 2, mb: 4 }}>
-        <TextField
-          fullWidth
-          placeholder="Search properties by name, location, or description..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search color="action" />
-              </InputAdornment>
-            ),
-          }}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              borderRadius: '25px',
-            }
-          }}
-        />
-      </Paper>
-
-      {/* Results Count */}
-      {!loading && (
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          {filteredProperties.length} properties found
-        </Typography>
+      {/* Connection Status */}
+      {!isFullyConnected && (
+        <Alert 
+          severity={backendStatus === 'checking' ? 'info' : 'warning'} 
+          sx={{ mb: 3 }}
+          action={
+            <IconButton
+              color="inherit"
+              size="small"
+              onClick={refresh}
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={20} /> : <Refresh />}
+            </IconButton>
+          }
+        >
+          {backendStatus === 'checking' 
+            ? 'Checking backend connection...' 
+            : 'Backend service unavailable - showing cached data'
+          }
+        </Alert>
       )}
 
-      {/* Properties Grid */}
+      {/* Filters */}
+      <Paper elevation={2} sx={{ p: 2, mb: 4 }}>
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={8}>
+            <TextField
+              fullWidth
+              placeholder="Search services by name, origin, or destination..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search color="action" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '25px',
+                }
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              select
+              label="Service Type"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              SelectProps={{ native: true }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '25px',
+                }
+              }}
+            >
+              <option value="">All Types</option>
+              <option value="0">🚌 Bus</option>
+              <option value="1">🚆 Train</option>
+              <option value="2">🎬 Movie</option>
+              <option value="3">🎉 Event</option>
+            </TextField>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {/* Results Count and Last Updated */}
+      {!loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="body1" color="text.secondary">
+            {filteredServices.length} services found
+          </Typography>
+          {lastUpdated && (
+            <Typography variant="caption" color="text.secondary">
+              Last updated: {lastUpdated.toLocaleTimeString()}
+            </Typography>
+          )}
+        </Box>
+      )}
+
+      {/* Error State */}
+      {error && !loading && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error} - Please check your connection and try again.
+        </Alert>
+      )}
+
+      {/* Services Grid */}
       <Grid container spacing={3}>
         {loading
           ? Array(6).fill(0).map((_, index) => (
               <Grid item xs={12} sm={6} md={4} key={index}>
-                <PropertySkeleton />
+                <ServiceSkeleton />
               </Grid>
             ))
-          : filteredProperties.map((property) => (
-              <Grid item xs={12} sm={6} md={4} key={property.id}>
-                <PropertyCard property={property} />
+          : filteredServices.map((service) => (
+              <Grid item xs={12} sm={6} md={4} key={service.id}>
+                <ServiceCard service={service} />
               </Grid>
             ))
         }
       </Grid>
 
       {/* No Results */}
-      {!loading && filteredProperties.length === 0 && (
+      {!loading && filteredServices.length === 0 && !error && (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Typography variant="h5" color="text.secondary" gutterBottom>
-            No properties found
+            No services found
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Try adjusting your search criteria
+            Try adjusting your search criteria or check back later
           </Typography>
         </Box>
       )}
