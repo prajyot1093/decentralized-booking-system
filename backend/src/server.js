@@ -89,9 +89,7 @@ const server = app.listen(PORT, async () => {
   // Start blockchain indexer
   try {
     const connected = await indexer.initialize();
-    if (connected) {
-      await indexer.startIndexing();
-    }
+    await indexer.startIndexing(); // Always start indexing (will use mock data if no connection)
   } catch (error) {
     console.error('❌ Failed to start indexer:', error);
   }
