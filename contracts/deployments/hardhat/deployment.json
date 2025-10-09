@@ -1,0 +1,24 @@
+{
+  "timestamp": "2025-10-09T17:41:47.091Z",
+  "networks": {
+    "hardhat": {
+      "name": "Hardhat Local",
+      "chainId": 31337,
+      "rpcUrl": "http://127.0.0.1:8545",
+      "gasPrice": "20000000000",
+      "gasLimit": 6000000,
+      "timestamp": "2025-10-09T17:41:47.125Z",
+      "blockNumber": 1
+    }
+  },
+  "contracts": {
+    "TicketBookingSystem": {
+      "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      "network": "hardhat",
+      "chainId": 31337,
+      "deploymentBlock": 1,
+      "constructorArgs": [],
+      "timestamp": "2025-10-09T17:41:47.116Z"
+    }
+  }
+}

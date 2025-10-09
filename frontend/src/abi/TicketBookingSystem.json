@@ -1,56 +1,679 @@
 {
-  "_comment": "Placeholder ABI file. Replace with actual ABI from artifacts after running hardhat compile.",
+  "contractName": "TicketBookingSystem",
   "abi": [
     {
-      "inputs": [
-        { "internalType": "uint8", "name": "serviceType", "type": "uint8" },
-        { "internalType": "string", "name": "name", "type": "string" },
-        { "internalType": "string", "name": "origin", "type": "string" },
-        { "internalType": "string", "name": "destination", "type": "string" },
-        { "internalType": "uint256", "name": "startTime", "type": "uint256" },
-        { "internalType": "uint256", "name": "basePriceWei", "type": "uint256" },
-        { "internalType": "uint256", "name": "totalSeats", "type": "uint256" }
-      ],
-      "name": "listService",
-      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-      "stateMutability": "nonpayable",
-      "type": "function"
+      "type": "constructor",
+      "stateMutability": "undefined",
+      "payable": false,
+      "inputs": []
     },
     {
-      "inputs": [
-        { "internalType": "uint256", "name": "serviceId", "type": "uint256" },
-        { "internalType": "uint256[]", "name": "seatNumbers", "type": "uint256[]" }
-      ],
-      "name": "purchaseSeats",
-      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-      "stateMutability": "payable",
-      "type": "function"
+      "type": "error",
+      "name": "AlreadyRefunded",
+      "inputs": []
     },
     {
-      "inputs": [{ "internalType": "uint256", "name": "serviceId", "type": "uint256" }],
-      "name": "getService",
-      "outputs": [
+      "type": "error",
+      "name": "InvalidSeatNumber",
+      "inputs": [
         {
-          "components": [
-            { "internalType": "uint256", "name": "id", "type": "uint256" },
-            { "internalType": "uint8", "name": "serviceType", "type": "uint8" },
-            { "internalType": "address", "name": "provider", "type": "address" },
-            { "internalType": "string", "name": "name", "type": "string" },
-            { "internalType": "string", "name": "origin", "type": "string" },
-            { "internalType": "string", "name": "destination", "type": "string" },
-            { "internalType": "uint256", "name": "startTime", "type": "uint256" },
-            { "internalType": "uint256", "name": "basePriceWei", "type": "uint256" },
-            { "internalType": "uint256", "name": "totalSeats", "type": "uint256" },
-            { "internalType": "uint256", "name": "seatsBitmap", "type": "uint256" },
-            { "internalType": "bool", "name": "isActive", "type": "bool" }
-          ],
-          "internalType": "struct TicketBookingSystem.Service",
-          "name": "",
-          "type": "tuple"
+          "type": "uint256",
+          "name": "seatNumber"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "NotTicketOwner",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "OwnableInvalidOwner",
+      "inputs": [
+        {
+          "type": "address",
+          "name": "owner"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "OwnableUnauthorizedAccount",
+      "inputs": [
+        {
+          "type": "address",
+          "name": "account"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "ReentrancyGuardReentrantCall",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SeatAlreadyBooked",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "seatNumber"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "SeatsArrayEmpty",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "ServiceInactive",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "TooLateForRefund",
+      "inputs": []
+    },
+    {
+      "type": "event",
+      "anonymous": false,
+      "name": "OwnershipTransferred",
+      "inputs": [
+        {
+          "type": "address",
+          "name": "previousOwner",
+          "indexed": true
+        },
+        {
+          "type": "address",
+          "name": "newOwner",
+          "indexed": true
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "anonymous": false,
+      "name": "ServiceListed",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "serviceId",
+          "indexed": true
+        },
+        {
+          "type": "uint8",
+          "name": "serviceType",
+          "indexed": false
+        },
+        {
+          "type": "string",
+          "name": "name",
+          "indexed": false
+        },
+        {
+          "type": "uint256",
+          "name": "startTime",
+          "indexed": false
+        },
+        {
+          "type": "uint256",
+          "name": "basePriceWei",
+          "indexed": false
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "anonymous": false,
+      "name": "ServiceStatusChanged",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "serviceId",
+          "indexed": true
+        },
+        {
+          "type": "bool",
+          "name": "isActive",
+          "indexed": false
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "anonymous": false,
+      "name": "TicketPurchased",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "ticketId",
+          "indexed": true
+        },
+        {
+          "type": "uint256",
+          "name": "serviceId",
+          "indexed": true
+        },
+        {
+          "type": "address",
+          "name": "buyer",
+          "indexed": true
+        },
+        {
+          "type": "uint256[]",
+          "name": "seats"
+        },
+        {
+          "type": "uint256",
+          "name": "amount",
+          "indexed": false
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "anonymous": false,
+      "name": "TicketRefunded",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "ticketId",
+          "indexed": true
+        },
+        {
+          "type": "uint256",
+          "name": "amount",
+          "indexed": false
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "getAvailableSeats",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "serviceId"
         }
       ],
+      "outputs": [
+        {
+          "type": "uint256[]",
+          "name": ""
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "getService",
+      "constant": true,
       "stateMutability": "view",
-      "type": "function"
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "serviceId"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "tuple",
+          "name": "",
+          "components": [
+            {
+              "type": "uint256",
+              "name": "id"
+            },
+            {
+              "type": "uint8",
+              "name": "serviceType"
+            },
+            {
+              "type": "address",
+              "name": "provider"
+            },
+            {
+              "type": "string",
+              "name": "name"
+            },
+            {
+              "type": "string",
+              "name": "origin"
+            },
+            {
+              "type": "string",
+              "name": "destination"
+            },
+            {
+              "type": "uint256",
+              "name": "startTime"
+            },
+            {
+              "type": "uint256",
+              "name": "basePriceWei"
+            },
+            {
+              "type": "uint256",
+              "name": "totalSeats"
+            },
+            {
+              "type": "uint256",
+              "name": "seatsBitmap"
+            },
+            {
+              "type": "bool",
+              "name": "isActive"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "getServiceTickets",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "serviceId"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "uint256[]",
+          "name": ""
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "getTicket",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "ticketId"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "tuple",
+          "name": "",
+          "components": [
+            {
+              "type": "uint256",
+              "name": "id"
+            },
+            {
+              "type": "uint256",
+              "name": "serviceId"
+            },
+            {
+              "type": "address",
+              "name": "buyer"
+            },
+            {
+              "type": "uint256[]",
+              "name": "seats"
+            },
+            {
+              "type": "uint256",
+              "name": "totalPaid"
+            },
+            {
+              "type": "uint256",
+              "name": "purchasedAt"
+            },
+            {
+              "type": "bool",
+              "name": "refunded"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "getUserTickets",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [
+        {
+          "type": "address",
+          "name": "user"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "uint256[]",
+          "name": ""
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "isSeatBooked",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "serviceId"
+        },
+        {
+          "type": "uint256",
+          "name": "seatNumber"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "bool",
+          "name": ""
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "listService",
+      "constant": false,
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint8",
+          "name": "serviceType"
+        },
+        {
+          "type": "string",
+          "name": "name"
+        },
+        {
+          "type": "string",
+          "name": "origin"
+        },
+        {
+          "type": "string",
+          "name": "destination"
+        },
+        {
+          "type": "uint256",
+          "name": "startTime"
+        },
+        {
+          "type": "uint256",
+          "name": "basePriceWei"
+        },
+        {
+          "type": "uint256",
+          "name": "totalSeats"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "uint256",
+          "name": ""
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "owner",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [],
+      "outputs": [
+        {
+          "type": "address",
+          "name": ""
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "purchaseSeats",
+      "constant": false,
+      "stateMutability": "payable",
+      "payable": true,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "serviceId"
+        },
+        {
+          "type": "uint256[]",
+          "name": "seatNumbers"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "uint256",
+          "name": ""
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "refund",
+      "constant": false,
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "ticketId"
+        }
+      ],
+      "outputs": []
+    },
+    {
+      "type": "function",
+      "name": "renounceOwnership",
+      "constant": false,
+      "payable": false,
+      "inputs": [],
+      "outputs": []
+    },
+    {
+      "type": "function",
+      "name": "serviceTickets",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": ""
+        },
+        {
+          "type": "uint256",
+          "name": ""
+        }
+      ],
+      "outputs": [
+        {
+          "type": "uint256",
+          "name": ""
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "services",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": ""
+        }
+      ],
+      "outputs": [
+        {
+          "type": "uint256",
+          "name": "id"
+        },
+        {
+          "type": "uint8",
+          "name": "serviceType"
+        },
+        {
+          "type": "address",
+          "name": "provider"
+        },
+        {
+          "type": "string",
+          "name": "name"
+        },
+        {
+          "type": "string",
+          "name": "origin"
+        },
+        {
+          "type": "string",
+          "name": "destination"
+        },
+        {
+          "type": "uint256",
+          "name": "startTime"
+        },
+        {
+          "type": "uint256",
+          "name": "basePriceWei"
+        },
+        {
+          "type": "uint256",
+          "name": "totalSeats"
+        },
+        {
+          "type": "uint256",
+          "name": "seatsBitmap"
+        },
+        {
+          "type": "bool",
+          "name": "isActive"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "setServiceActive",
+      "constant": false,
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "serviceId"
+        },
+        {
+          "type": "bool",
+          "name": "active"
+        }
+      ],
+      "outputs": []
+    },
+    {
+      "type": "function",
+      "name": "tickets",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": ""
+        }
+      ],
+      "outputs": [
+        {
+          "type": "uint256",
+          "name": "id"
+        },
+        {
+          "type": "uint256",
+          "name": "serviceId"
+        },
+        {
+          "type": "address",
+          "name": "buyer"
+        },
+        {
+          "type": "uint256",
+          "name": "totalPaid"
+        },
+        {
+          "type": "uint256",
+          "name": "purchasedAt"
+        },
+        {
+          "type": "bool",
+          "name": "refunded"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "transferOwnership",
+      "constant": false,
+      "payable": false,
+      "inputs": [
+        {
+          "type": "address",
+          "name": "newOwner"
+        }
+      ],
+      "outputs": []
+    },
+    {
+      "type": "function",
+      "name": "userTickets",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [
+        {
+          "type": "address",
+          "name": ""
+        },
+        {
+          "type": "uint256",
+          "name": ""
+        }
+      ],
+      "outputs": [
+        {
+          "type": "uint256",
+          "name": ""
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "withdrawProvider",
+      "constant": false,
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "serviceId"
+        }
+      ],
+      "outputs": []
     }
-  ]
+  ],
+  "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "deploymentBlock": 1,
+  "lastUpdated": "2025-10-09T17:41:56.732Z"
 }
