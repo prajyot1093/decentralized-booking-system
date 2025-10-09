@@ -4,16 +4,24 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const connectDB = require('./config/database');
-const propertyRoutes = require('./routes/properties');
-const bookingRoutes = require('./routes/bookings');
-const userRoutes = require('./routes/users');
-const blockchainRoutes = require('./routes/blockchain');
+const servicesRoutes = require('./routes/services');
+const BlockchainIndexer = require('./indexer/BlockchainIndexer');
+
+// Mock contract ABI for indexer
+const TICKET_BOOKING_ABI = [
+  "event ServiceListed(uint256 indexed serviceId, uint8 serviceType, string name, uint256 startTime, uint256 basePriceWei)",
+  "event TicketPurchased(uint256 indexed ticketId, uint256 indexed serviceId, address indexed buyer, uint256[] seats, uint256 amount)",
+  "function getService(uint256 serviceId) view returns (tuple(uint256 id, uint8 serviceType, address provider, string name, string origin, string destination, uint256 startTime, uint256 basePriceWei, uint256 totalSeats, uint256 seatsBitmap, bool isActive))"
+];
 
 const app = express();
 
-// Connect to database
-connectDB();
+// Initialize blockchain indexer
+const indexer = new BlockchainIndexer(
+  process.env.CONTRACT_ADDRESS,
+  TICKET_BOOKING_ABI,
+  servicesRoutes
+);
 
 // Security middleware
 app.use(helmet());
@@ -34,10 +42,15 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/api/properties', propertyRoutes);
-app.use('/api/bookings', bookingRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/blockchain', blockchainRoutes);
+app.use('/api/services', servicesRoutes);
+
+// Indexer status endpoint
+app.get('/api/indexer/status', (req, res) => {
+  res.json({
+    success: true,
+    data: indexer.getStatus()
+  });
+});
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -68,15 +81,26 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3001;
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+  
+  // Start blockchain indexer
+  try {
+    const connected = await indexer.initialize();
+    if (connected) {
+      await indexer.startIndexing();
+    }
+  } catch (error) {
+    console.error('❌ Failed to start indexer:', error);
+  }
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully');
+  indexer.stop();
   server.close(() => {
     console.log('Process terminated');
   });
