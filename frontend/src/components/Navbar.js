@@ -69,6 +69,7 @@ const Navbar = () => {
         {/* Desktop Nav */}
         <Box sx={{ display:{ xs:'none', md:'flex'}, gap:1.2 }}>
           <Button component={Link} to="/" size="small" color="inherit" className="nav-link-underline">Home</Button>
+            <Button component={Link} to="/blockchain" size="small" color="inherit" className="nav-link-underline">🔗 Blockchain</Button>
             <Button component={Link} to="/tickets" size="small" color="inherit" className="nav-link-underline">Tickets</Button>
             <Button component={Link} to="/properties" size="small" color="inherit" className="nav-link-underline">Stays</Button>
             <Button component={Link} to="/analytics" size="small" color="inherit" className="nav-link-underline">Analytics</Button>

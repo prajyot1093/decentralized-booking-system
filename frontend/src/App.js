@@ -19,6 +19,7 @@ const BookingForm = lazy(() => import('./pages/BookingForm'));
 const MyBookings = lazy(() => import('./pages/MyBookings'));
 const MyProperties = lazy(() => import('./pages/MyProperties'));
 const Tickets = lazy(() => import('./pages/Tickets'));
+const BlockchainServices = lazy(() => import('./components/BlockchainServices'));
 
 function ThemedAppContainer() {
   const { chainId } = useWeb3();
@@ -42,6 +43,7 @@ function ThemedAppContainer() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/properties" element={<Properties />} />
+            <Route path="/blockchain" element={<BlockchainServices />} />
             <Route path="/book/:propertyId" element={<BookingForm />} />
             <Route path="/my-bookings" element={<MyBookings />} />
             <Route path="/my-properties" element={<MyProperties />} />

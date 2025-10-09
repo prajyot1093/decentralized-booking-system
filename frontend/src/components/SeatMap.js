@@ -1,34 +1,57 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Button, Typography, Tooltip } from '@mui/material';
+import { Box, Button, Typography, Tooltip, Chip } from '@mui/material';
+import { useBlockchainServiceDetails } from '../hooks/useBlockchainData';
+import { useWeb3 } from '../context/Web3Context';
 
 /**
- * SeatMap Component (accessible + adaptive)
+ * Enhanced SeatMap Component with Blockchain Integration
  * Props:
+ *  - serviceId: string (for blockchain data fetching)
  *  - schema: { mode: 'bus'|'train'|'cinema'; rows: number; seatsPerRow: number; aisleAfter?: number[]; seatLabels?: string[][] }
- *  - total (legacy fallback)
+ *  - totalSeats: number (fallback)
  *  - selected: number[] | string[] (seat ids)
  *  - onChange(newSelected)
- *  - bookedChecker(seatId) => boolean
+ *  - onSeatSelect: (seatNumber) => void (for booking actions)
  *  - maxSelectable?: number
  *  - disabled?: boolean
  *  - dense?: boolean (smaller spacing)
  *  - ariaLabel?: string
  */
 export default function SeatMap({
+  serviceId,
   schema,
-  total = 40,
+  totalSeats = 40,
   selected = [],
   onChange = () => {},
-  bookedChecker,
+  onSeatSelect = () => {},
+  bookedChecker, // Legacy prop - will use blockchain data if serviceId provided
   maxSelectable,
   disabled = false,
   dense = false,
   ariaLabel = 'Seat selection grid'
 }) {
+  const { account, formatAddress } = useWeb3();
+  const { seatMap, loading, isBlockchain } = useBlockchainServiceDetails(serviceId);
   // Derived seat list generation
-  const rows = schema?.rows || Math.ceil(total / (schema?.seatsPerRow || 8));
+  const rows = schema?.rows || Math.ceil(totalSeats / (schema?.seatsPerRow || 8));
   const seatsPerRow = schema?.seatsPerRow || 8;
   const aisleAfter = schema?.aisleAfter || []; // array of column indices after which an aisle gap appears
+  
+  // Enhanced booking checker that uses blockchain data
+  const isBooked = useCallback((seatNumber) => {
+    if (serviceId && seatMap[seatNumber]) {
+      return seatMap[seatNumber].isBooked;
+    }
+    return bookedChecker ? bookedChecker(seatNumber) : false;
+  }, [serviceId, seatMap, bookedChecker]);
+
+  // Get who booked a seat (for blockchain data)
+  const getBookedBy = useCallback((seatNumber) => {
+    if (serviceId && seatMap[seatNumber]) {
+      return seatMap[seatNumber].bookedBy;
+    }
+    return null;
+  }, [serviceId, seatMap]);
 
   const allSeats = useMemo(() => {
     const list = [];
@@ -55,9 +78,7 @@ export default function SeatMap({
     return () => clearTimeout(pendingRef.current);
   }, [internalSelection, onChange]);
 
-  const isBooked = useCallback((seatIdOrNum) => {
-    return bookedChecker ? bookedChecker(seatIdOrNum) : false;
-  }, [bookedChecker]);
+
 
   const toggleSeat = (s) => {
     if (disabled) return;
@@ -124,9 +145,20 @@ export default function SeatMap({
         // Adjust column index to account for aisles
         const insertAisleBefore = aisleAfter.includes(s.col) ? ' aisle-before' : '';
         const active = internalSelection.includes(s.seatId);
-        const booked = isBooked(s.seatId);
+        const booked = isBooked(s.linear); // Use linear index for blockchain compatibility
+        const bookedBy = getBookedBy(s.linear);
+        const isMyBooking = bookedBy && account && bookedBy.toLowerCase() === account.toLowerCase();
+        
+        // Enhanced tooltip
+        let tooltipText = `Seat ${s.seatId}`;
+        if (booked) {
+          tooltipText = isMyBooking 
+            ? `Your booking: ${s.seatId}` 
+            : `Booked: ${s.seatId}${bookedBy ? ` by ${formatAddress(bookedBy)}` : ''}`;
+        }
+        
         return (
-            <Tooltip key={s.seatId} title={booked ? 'Booked' : `Seat ${s.seatId}`}>
+            <Tooltip key={s.seatId} title={tooltipText}>
               <span
                 style={{
                   position: 'relative',
@@ -141,10 +173,21 @@ export default function SeatMap({
                   aria-selected={active ? 'true' : 'false'}
                   aria-label={`Seat ${s.seatId}${booked ? ' (booked)' : active ? ' (selected)' : ''}`}
                   disabled={booked || disabled}
-                  onClick={() => toggleSeat(s.seatId)}
+                  onClick={() => {
+                    if (serviceId && !booked) {
+                      onSeatSelect(s.linear); // Use linear index for blockchain
+                    } else {
+                      toggleSeat(s.seatId); // Legacy behavior
+                    }
+                  }}
                   size={dense ? 'small' : 'medium'}
                   variant={active ? 'contained' : 'outlined'}
-                  color={booked ? 'error' : active ? 'primary' : 'inherit'}
+                  color={
+                    isMyBooking ? 'success' : 
+                    booked ? 'error' : 
+                    active ? 'primary' : 
+                    'inherit'
+                  }
                   tabIndex={i === 0 ? 0 : -1}
                   sx={{
                     minWidth: dense ? 30 : 40,
@@ -160,8 +203,146 @@ export default function SeatMap({
         );
       })}
       <Typography variant="caption" sx={{ gridColumn: `1 / span ${seatsPerRow + aisleAfter.length}`, mt: 1, opacity: 0.7 }}>
-        Use arrow keys to navigate, Enter/Space to toggle. Booked seats disabled.
+        {serviceId 
+          ? "Click seats to book on blockchain. Green = yours, Red = booked by others."
+          : "Use arrow keys to navigate, Enter/Space to toggle. Booked seats disabled."
+        }
       </Typography>
     </Box>
+  );
+
+  // Add blockchain status display before the main return
+  const BlockchainStatus = () => {
+    if (!serviceId) return null;
+
+    return (
+      <Box mb={2} display="flex" gap={1} flexWrap="wrap">
+        <Chip
+          label={isBlockchain ? "🔗 Live Blockchain Data" : "📡 API Data"}
+          color={isBlockchain ? "success" : "warning"}
+          size="small"
+        />
+        {loading && (
+          <Chip
+            label="Loading seats..."
+            color="info"
+            size="small"
+          />
+        )}
+        {Object.keys(seatMap).length > 0 && (
+          <Chip
+            label={`${Object.values(seatMap).filter(seat => seat.isBooked).length} Booked`}
+            color="default"
+            size="small"
+          />
+        )}
+      </Box>
+    );
+  };
+
+  return (
+    <>
+      <BlockchainStatus />
+      <Box
+        ref={gridRef}
+        role="grid"
+        aria-label={ariaLabel}
+        aria-rowcount={rows}
+        aria-colcount={seatsPerRow}
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${seatsPerRow + aisleAfter.length} , 1fr)`,
+          gap: dense ? 0.5 : 1,
+          mt: 2,
+          outline: 'none'
+        }}
+      >
+        {allSeats.map((s, i) => {
+          // Adjust column index to account for aisles
+          const insertAisleBefore = aisleAfter.includes(s.col) ? ' aisle-before' : '';
+          const active = internalSelection.includes(s.seatId);
+          const booked = isBooked(s.linear); // Use linear index for blockchain compatibility
+          const bookedBy = getBookedBy(s.linear);
+          const isMyBooking = bookedBy && account && bookedBy.toLowerCase() === account.toLowerCase();
+          
+          // Enhanced tooltip
+          let tooltipText = `Seat ${s.seatId}`;
+          if (booked) {
+            tooltipText = isMyBooking 
+              ? `Your booking: ${s.seatId}` 
+              : `Booked: ${s.seatId}${bookedBy ? ` by ${formatAddress(bookedBy)}` : ''}`;
+          }
+          
+          return (
+              <Tooltip key={s.seatId} title={tooltipText}>
+                <span
+                  style={{
+                    position: 'relative',
+                    display: 'flex',
+                    justifyContent: 'center'
+                  }}
+                  className={insertAisleBefore ? 'seat-cell-aisle' : ''}
+                >
+                  <Button
+                    ref={el => { seatButtonRefs.current[i] = el; }}
+                    role="gridcell"
+                    aria-selected={active ? 'true' : 'false'}
+                    aria-label={`Seat ${s.seatId}${booked ? ' (booked)' : active ? ' (selected)' : ''}`}
+                    disabled={booked || disabled}
+                    onClick={() => {
+                      if (serviceId && !booked) {
+                        onSeatSelect(s.linear); // Use linear index for blockchain
+                      } else {
+                        toggleSeat(s.seatId); // Legacy behavior
+                      }
+                    }}
+                    size={dense ? 'small' : 'medium'}
+                    variant={active ? 'contained' : 'outlined'}
+                    color={
+                      isMyBooking ? 'success' : 
+                      booked ? 'error' : 
+                      active ? 'primary' : 
+                      'inherit'
+                    }
+                    tabIndex={i === 0 ? 0 : -1}
+                    sx={{
+                      minWidth: dense ? 30 : 40,
+                      p: dense ? 0.4 : 0.8,
+                      fontSize: dense ? 11 : 13,
+                      lineHeight: 1,
+                      borderRadius: 1.2,
+                      position: 'relative'
+                    }}
+                  >{s.label}</Button>
+                  
+                  {/* Blockchain indicator */}
+                  {isMyBooking && (
+                    <Chip
+                      size="small"
+                      label="Mine"
+                      color="success"
+                      sx={{
+                        position: 'absolute',
+                        top: -8,
+                        right: -8,
+                        fontSize: '8px',
+                        height: '16px'
+                      }}
+                    />
+                  )}
+                </span>
+              </Tooltip>
+          );
+        })}
+        <Typography variant="caption" sx={{ gridColumn: `1 / span ${seatsPerRow + aisleAfter.length}`, mt: 1, opacity: 0.7 }}>
+          {serviceId 
+            ? "Click seats to book on blockchain. Green = yours, Red = booked by others."
+            : "Use arrow keys to navigate, Enter/Space to toggle. Booked seats disabled."
+          }
+        </Typography>
+      </Box>
+    </>
   );
 }
