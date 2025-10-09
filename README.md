@@ -1,3 +1,104 @@
+# TicketChain — Decentralized Multi‑Modal Ticketing (Prototype)
+
+> A hackathon prototype for decentralized ticket booking across bus, train, and movie events. Built with React (MUI), Hardhat smart contracts, and an optional Node.js indexer/API.
+
+This repository contains a frontend UI, Solidity smart contracts, and a minimal backend skeleton used to index on‑chain services for faster listing and seat occupancy checks. The project is intentionally designed to be demoable on public testnets (Sepolia / Polygon testnets) and locally via Hardhat.
+
+Status: Prototype — demo-ready for testnets. All major UI features (theme toggle with blast animation, Tickets page, SeatMap, TransactionPanel) are implemented. Remaining work is focused on on‑chain seat state integration, contract tests, and optional indexer deployment.
+
+----------------------------------------------------------------------
+
+## Tech stack
+- Frontend: React 18, Material UI v5, react-hot-toast, ethers.js (v6)
+- Smart contracts: Solidity, Hardhat
+- Backend: Node.js, Express (optional indexer / API)
+- Dev tools: Hardhat, ESLint, Jest (tests to be added), GitHub Actions (CI)
+
+----------------------------------------------------------------------
+
+## Quick start (local development)
+These steps assume you have Node.js (16+), npm, and Git installed.
+
+1. Clone the repo
+
+	git clone <your-repo-url>
+	cd "Decentralized booking system"
+
+2. Install dependencies for top-level packages (frontend and backend)
+
+	# Frontend
+	cd frontend
+	npm install
+
+	# Backend
+	cd ../backend
+	npm install
+
+3. Frontend (development)
+
+	cd frontend
+	npm run start
+
+	Open http://localhost:3000 in your browser.
+
+4. Backend (development)
+
+	cd backend
+	# make sure .env is configured if you use RPC keys
+	node src/server.js
+
+	The backend will listen on the port from .env (default 3001). Health: `GET /api/health`.
+
+----------------------------------------------------------------------
+
+## Environment variables
+Create a `.env` file in `frontend` and `backend` if you plan to run against testnet RPC or a real indexer. Example keys used by the codebase:
+
+Frontend (`frontend/.env`)
+- REACT_APP_TICKET_ADDRESS=0x...   # deployed TicketBookingSystem contract address (testnet)
+- REACT_APP_RPC_URL=https://eth-sepolia.alchemyapi.io/v2/<KEY>  # optional
+- REACT_APP_PERF_MODE=1            # optional performance mode to reduce heavy effects
+
+Backend (`backend/.env`)
+- PORT=3001
+- FRONTEND_URL=http://localhost:3000
+- RPC_WS_URL=wss://eth-sepolia.g.alchemy.com/v2/<KEY>  # for event listener (optional)
+
+Note: Do not commit private keys or secrets to the repo.
+
+----------------------------------------------------------------------
+
+## Quick Demo (3-step script)
+This is the minimal demo flow to show in 60–90 seconds during a hackathon presentation.
+
+1. Connect wallet (MetaMask) in the frontend.
+2. Select a service (Bus / Train / Movie) and open the seat map.
+3. Pick seats, click Book → watch TransactionPanel update, open the transaction on Etherscan (testnet) to show the on‑chain result.
+
+See `DEMO.md` for a more detailed timed script and exact CLI commands (local & seeded testnet).
+
+----------------------------------------------------------------------
+
+## Project structure (key folders)
+- `frontend/` — React app, components, theme, pages
+- `contracts/` — Solidity contracts and Hardhat config
+- `backend/` — Express API and indexer skeleton
+- `docs/` — supporting diagrams and documentation
+
+----------------------------------------------------------------------
+
+## Next steps & roadmap
+- Add Hardhat unit tests validating booking logic (double-book prevention).
+- Add backend indexer that listens for `ServiceListed` and `SeatsPurchased` events and exposes `/api/services` and `/api/services/:id/seats`.
+- Deploy contracts to a public testnet and seed sample services via scripts.
+- Add CI/E2E tests and a backup recorded demo video.
+
+----------------------------------------------------------------------
+
+If you need a scripted demo or a public deployment (Vercel / Render), follow `DEMO.md` and `docs/deploy.md` (coming soon).
+
+Thanks — good luck with your hackathon!
+
 # TicketChain – Multi-Modal Decentralized Booking ��🏨⛓️
 
 Originally a property rental dApp, now pivoted to a unified on-chain platform for Bus, Train & Movie ticket booking (while retaining property stays module).
