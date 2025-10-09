@@ -59,6 +59,7 @@ class BlockchainIndexer {
     if (!this.contract) {
       console.log('📝 No contract available - adding mock data for development');
       this.addMockData();
+      console.log('✅ Mock data loaded successfully');
       return;
     }
 
