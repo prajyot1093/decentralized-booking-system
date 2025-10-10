@@ -2,9 +2,10 @@
   "name": "decentralized-booking-system",
   "version": "1.0.0",
   "description": "A blockchain-powered booking system for hackathon",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "start": "cd frontend && npm start",
+    "start": "node src/index.js",
+    "frontend:start": "cd frontend && npm start",
     "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install && cd ../contracts && npm install",
     "dev": "concurrently \"npm run blockchain\" \"npm run backend\" \"npm run frontend\"",
     "blockchain": "cd contracts && npx hardhat node",
@@ -42,5 +43,7 @@
     "npm": ">=8.0.0"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0"
   }
 }
