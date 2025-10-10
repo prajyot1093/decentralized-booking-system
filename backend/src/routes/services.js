@@ -16,6 +16,100 @@ const TICKET_BOOKING_ABI = [
 ];
 
 /**
+ * @route GET /api/services/:id/seats
+ * @desc Get seat occupancy for a specific service
+ * @access Public
+ */
+router.get('/:id/seats', async (req, res) => {
+  try {
+    const serviceId = parseInt(req.params.id);
+    
+    if (isNaN(serviceId) || serviceId < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid service ID'
+      });
+    }
+
+    // Get from cache first
+    const cacheKey = `seats_${serviceId}`;
+    let seatData = seatsCache.get(cacheKey);
+    
+    if (!seatData) {
+      // Generate seat data for the service
+      const service = servicesCache.get(serviceId);
+      if (!service) {
+        return res.status(404).json({
+          success: false,
+          error: 'Service not found'
+        });
+      }
+
+      const totalSeats = service.totalSeats || 100;
+      const bookedSeats = [];
+      
+      // Mock some booked seats for demo
+      const bookingRate = Math.random() * 0.3; // 0-30% occupancy
+      const numBooked = Math.floor(totalSeats * bookingRate);
+      
+      for (let i = 0; i < numBooked; i++) {
+        const seatNum = Math.floor(Math.random() * totalSeats) + 1;
+        const row = String.fromCharCode(65 + Math.floor((seatNum - 1) / 10)); // A, B, C...
+        const seat = ((seatNum - 1) % 10) + 1;
+        const seatId = `${row}-${seat}`;
+        
+        if (!bookedSeats.includes(seatId)) {
+          bookedSeats.push(seatId);
+        }
+      }
+
+      seatData = {
+        serviceId,
+        totalSeats,
+        bookedSeats: bookedSeats.sort(),
+        availableSeats: totalSeats - bookedSeats.length,
+        timestamp: new Date().toISOString(),
+        cacheExpiry: Date.now() + (5 * 60 * 1000) // 5 minutes
+      };
+
+      // Cache the result
+      seatsCache.set(cacheKey, seatData);
+      
+      // Auto-expire cache entries
+      setTimeout(() => {
+        seatsCache.delete(cacheKey);
+      }, 5 * 60 * 1000);
+    }
+
+    // Check if cache is expired
+    if (seatData.cacheExpiry < Date.now()) {
+      seatsCache.delete(cacheKey);
+      // Recursive call to regenerate data
+      return router.handle(req, res);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        serviceId: seatData.serviceId,
+        totalSeats: seatData.totalSeats,
+        bookedSeats: seatData.bookedSeats,
+        availableSeats: seatData.availableSeats,
+        timestamp: seatData.timestamp
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching seat data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+/**
  * @route GET /api/services
  * @desc Get all active services
  * @access Public
