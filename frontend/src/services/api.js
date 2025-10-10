@@ -117,7 +117,7 @@ class ApiService {
   // Get platform statistics
   async getPlatformStats() {
     try {
-      const response = await this.api.get('/services/stats');
+      const response = await this.api.get('/services/stats/platform');
       
       if (response.data.success) {
         return response.data.data;

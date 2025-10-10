@@ -1,0 +1,356 @@
+import { useState, useEffect, useCallback } from 'react';
+import { ethers } from 'ethers';
+import { useWeb3 } from '../context/Web3Context';
+import apiService from '../services/api';
+
+/**
+ * Real-time blockchain data management hooks
+ * Combines blockchain state with API fallback for optimal UX
+ */
+
+export const useBlockchainServices = () => {
+  const { ticketContract, isNetworkSupported, contractEvents } = useWeb3();
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Fetch services from blockchain
+  const fetchBlockchainServices = useCallback(async () => {
+    if (!ticketContract) return [];
+
+    try {
+      // Get ServiceCreated events to find all services
+      const filter = ticketContract.filters.ServiceCreated();
+      const events = await ticketContract.queryFilter(filter, 0, 'latest');
+      
+      const servicePromises = events.map(async (event) => {
+        const serviceId = event.args.serviceId.toString();
+        const serviceDetails = await ticketContract.services(serviceId);
+        
+        return {
+          id: serviceId,
+          name: event.args.name,
+          description: event.args.description,
+          pricePerSeat: parseFloat(ethers.formatEther(event.args.pricePerSeat)),
+          totalSeats: parseInt(event.args.totalSeats.toString()),
+          availableSeats: parseInt(serviceDetails.availableSeats.toString()),
+          isActive: serviceDetails.isActive,
+          blockNumber: event.blockNumber,
+          transactionHash: event.transactionHash,
+          timestamp: new Date().toISOString() // Approximate
+        };
+      });
+
+      return await Promise.all(servicePromises);
+    } catch (error) {
+      console.error('Error fetching blockchain services:', error);
+      throw error;
+    }
+  }, [ticketContract]);
+
+  // Fetch services with fallback strategy
+  const fetchServices = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (isNetworkSupported && ticketContract) {
+        console.log('📡 Fetching services from blockchain...');
+        const blockchainServices = await fetchBlockchainServices();
+        setServices(blockchainServices);
+      } else {
+        console.log('📡 Fetching services from API (fallback)...');
+        const apiServices = await apiService.getServices();
+        setServices(apiServices);
+      }
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      setError(error.message);
+      
+      // Fallback to API if blockchain fails
+      if (isNetworkSupported) {
+        try {
+          console.log('📡 Blockchain failed, trying API fallback...');
+          const apiServices = await apiService.getServices();
+          setServices(apiServices);
+        } catch (apiError) {
+          console.error('API fallback also failed:', apiError);
+        }
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [ticketContract, isNetworkSupported, fetchBlockchainServices]);
+
+  // Update services when contract events occur
+  useEffect(() => {
+    const serviceEvents = contractEvents.filter(event => 
+      ['ServiceCreated', 'SeatBooked', 'SeatCancelled'].includes(event.type)
+    );
+
+    if (serviceEvents.length > 0 && isNetworkSupported) {
+      console.log('🔄 Contract events detected, refreshing services...');
+      fetchServices();
+    }
+  }, [contractEvents, fetchServices, isNetworkSupported]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchServices();
+  }, [fetchServices]);
+
+  return {
+    services,
+    loading,
+    error,
+    refetch: fetchServices,
+    isBlockchain: isNetworkSupported && !!ticketContract
+  };
+};
+
+export const useBlockchainServiceDetails = (serviceId) => {
+  const { ticketContract, isNetworkSupported, getServiceDetails } = useWeb3();
+  const [serviceDetails, setServiceDetails] = useState(null);
+  const [seatMap, setSeatMap] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Fetch seat bookings for a service
+  const fetchSeatMap = useCallback(async (totalSeats) => {
+    if (!ticketContract || !serviceId) return {};
+
+    try {
+      const seatPromises = [];
+      for (let i = 1; i <= totalSeats; i++) {
+        seatPromises.push(
+          ticketContract.seatBookings(serviceId, i).then(booking => ({
+            seatNumber: i,
+            isBooked: booking !== '0x0000000000000000000000000000000000000000',
+            bookedBy: booking !== '0x0000000000000000000000000000000000000000' ? booking : null
+          }))
+        );
+      }
+
+      const seatResults = await Promise.all(seatPromises);
+      const seatMap = {};
+      seatResults.forEach(seat => {
+        seatMap[seat.seatNumber] = seat;
+      });
+
+      return seatMap;
+    } catch (error) {
+      console.error('Error fetching seat map:', error);
+      return {};
+    }
+  }, [ticketContract, serviceId]);
+
+  // Fetch complete service details
+  const fetchServiceDetails = useCallback(async () => {
+    if (!serviceId) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (isNetworkSupported && ticketContract && getServiceDetails) {
+        console.log(`📡 Fetching service ${serviceId} from blockchain...`);
+        const details = await getServiceDetails(serviceId);
+        setServiceDetails(details);
+        
+        // Fetch seat map
+        const seats = await fetchSeatMap(parseInt(details.totalSeats));
+        setSeatMap(seats);
+      } else {
+        console.log(`📡 Fetching service ${serviceId} from API (fallback)...`);
+        const details = await apiService.getServiceDetails(serviceId);
+        setServiceDetails(details);
+        
+        // Generate mock seat map for API data
+        const mockSeatMap = {};
+        for (let i = 1; i <= details.totalSeats; i++) {
+          mockSeatMap[i] = {
+            seatNumber: i,
+            isBooked: Math.random() > 0.7, // 30% booked randomly
+            bookedBy: null
+          };
+        }
+        setSeatMap(mockSeatMap);
+      }
+    } catch (error) {
+      console.error('Error fetching service details:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [serviceId, ticketContract, isNetworkSupported, getServiceDetails, fetchSeatMap]);
+
+  // Refresh when service ID changes
+  useEffect(() => {
+    fetchServiceDetails();
+  }, [fetchServiceDetails]);
+
+  return {
+    serviceDetails,
+    seatMap,
+    loading,
+    error,
+    refetch: fetchServiceDetails,
+    isBlockchain: isNetworkSupported && !!ticketContract
+  };
+};
+
+export const useBlockchainBooking = () => {
+  const { 
+    ticketContract, 
+    isNetworkSupported, 
+    account, 
+    bookSeat, 
+    cancelBooking, 
+    contractEvents 
+  } = useWeb3();
+  
+  const [isBooking, setIsBooking] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  // Book a seat on blockchain
+  const bookSeatOnChain = useCallback(async (serviceId, seatNumber, paymentAmount) => {
+    if (!isNetworkSupported || !ticketContract || !account) {
+      throw new Error('Blockchain not available. Please connect wallet and switch to supported network.');
+    }
+
+    setIsBooking(true);
+    try {
+      console.log(`🎫 Booking seat ${seatNumber} for service ${serviceId} on blockchain...`);
+      const receipt = await bookSeat(serviceId, seatNumber, paymentAmount);
+      console.log('✅ Booking confirmed on blockchain:', receipt.transactionHash);
+      return receipt;
+    } catch (error) {
+      console.error('❌ Blockchain booking failed:', error);
+      throw error;
+    } finally {
+      setIsBooking(false);
+    }
+  }, [isNetworkSupported, ticketContract, account, bookSeat]);
+
+  // Cancel a booking on blockchain
+  const cancelBookingOnChain = useCallback(async (serviceId, seatNumber) => {
+    if (!isNetworkSupported || !ticketContract || !account) {
+      throw new Error('Blockchain not available. Please connect wallet and switch to supported network.');
+    }
+
+    setIsCancelling(true);
+    try {
+      console.log(`🎫 Cancelling seat ${seatNumber} for service ${serviceId} on blockchain...`);
+      const receipt = await cancelBooking(serviceId, seatNumber);
+      console.log('✅ Cancellation confirmed on blockchain:', receipt.transactionHash);
+      return receipt;
+    } catch (error) {
+      console.error('❌ Blockchain cancellation failed:', error);
+      throw error;
+    } finally {
+      setIsCancelling(false);
+    }
+  }, [isNetworkSupported, ticketContract, account, cancelBooking]);
+
+  // Fallback booking via API
+  const bookSeatViaAPI = useCallback(async (serviceId, seatNumber, userInfo) => {
+    setIsBooking(true);
+    try {
+      console.log(`🎫 Booking seat ${seatNumber} for service ${serviceId} via API...`);
+      const result = await apiService.bookSeat(serviceId, seatNumber, userInfo);
+      console.log('✅ API booking confirmed');
+      return result;
+    } catch (error) {
+      console.error('❌ API booking failed:', error);
+      throw error;
+    } finally {
+      setIsBooking(false);
+    }
+  }, []);
+
+  // Smart booking function that chooses best method
+  const smartBookSeat = useCallback(async (serviceId, seatNumber, paymentAmount, userInfo = {}) => {
+    if (isNetworkSupported && ticketContract && account) {
+      return bookSeatOnChain(serviceId, seatNumber, paymentAmount);
+    } else {
+      return bookSeatViaAPI(serviceId, seatNumber, userInfo);
+    }
+  }, [isNetworkSupported, ticketContract, account, bookSeatOnChain, bookSeatViaAPI]);
+
+  return {
+    bookSeat: smartBookSeat,
+    cancelBooking: cancelBookingOnChain,
+    isBooking,
+    isCancelling,
+    isBlockchainMode: isNetworkSupported && !!ticketContract && !!account,
+    recentBookingEvents: contractEvents.filter(event => 
+      event.type === 'SeatBooked' && event.user?.toLowerCase() === account?.toLowerCase()
+    )
+  };
+};
+
+export const useRealTimeEvents = () => {
+  const { contractEvents, isNetworkSupported, account } = useWeb3();
+  const [eventFilter, setEventFilter] = useState('all'); // all, user, service
+
+  const filteredEvents = contractEvents.filter(event => {
+    if (eventFilter === 'all') return true;
+    if (eventFilter === 'user') return event.user?.toLowerCase() === account?.toLowerCase();
+    // Add more filters as needed
+    return true;
+  });
+
+  return {
+    events: filteredEvents,
+    eventFilter,
+    setEventFilter,
+    isRealTime: isNetworkSupported,
+    eventCount: contractEvents.length
+  };
+};
+
+export const useNetworkStats = () => {
+  const { provider, ticketContract, networkConfig, contractEvents } = useWeb3();
+  const [blockNumber, setBlockNumber] = useState(null);
+  const [gasPrice, setGasPrice] = useState(null);
+  const [networkStats, setNetworkStats] = useState({});
+
+  useEffect(() => {
+    if (!provider) return;
+
+    const updateStats = async () => {
+      try {
+        const [currentBlock, currentGasPrice] = await Promise.all([
+          provider.getBlockNumber(),
+          provider.getFeeData()
+        ]);
+
+        setBlockNumber(currentBlock);
+        setGasPrice(currentGasPrice.gasPrice);
+        
+        setNetworkStats({
+          blockNumber: currentBlock,
+          gasPrice: currentGasPrice.gasPrice,
+          network: networkConfig?.network?.name || 'Unknown',
+          chainId: networkConfig?.network?.chainId || 'Unknown',
+          totalEvents: contractEvents.length,
+          lastEventTime: contractEvents[0]?.timestamp || null
+        });
+      } catch (error) {
+        console.error('Error updating network stats:', error);
+      }
+    };
+
+    updateStats();
+    const interval = setInterval(updateStats, 15000); // Update every 15 seconds
+
+    return () => clearInterval(interval);
+  }, [provider, networkConfig, contractEvents]);
+
+  return {
+    blockNumber,
+    gasPrice,
+    networkStats,
+    isConnected: !!provider
+  };
+};
