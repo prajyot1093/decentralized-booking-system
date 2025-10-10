@@ -59,6 +59,7 @@
   },
   "devDependencies": {
     "@craco/craco": "^7.1.0",
+    "@playwright/test": "^1.56.0",
     "cross-env": "^7.0.3",
     "eslint": "^8.47.0",
     "localtunnel": "^2.0.2",
