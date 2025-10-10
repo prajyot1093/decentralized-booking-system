@@ -5,6 +5,8 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "vercel-build": "cd frontend && npm install && npm run build",
+    "build": "npm run vercel-build",
     "frontend:start": "cd frontend && npm start",
     "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install && cd ../contracts && npm install",
     "dev": "concurrently \"npm run blockchain\" \"npm run backend\" \"npm run frontend\"",
@@ -17,7 +19,6 @@
     "test:frontend": "cd frontend && npm test",
     "deploy:local": "cd contracts && npx hardhat run scripts/deploy.js --network localhost",
     "deploy:testnet": "cd contracts && npx hardhat run scripts/deploy.js --network goerli",
-    "build": "cd frontend && npm run build",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write ."
   },
