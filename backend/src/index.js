@@ -1,3 +1,5 @@
 // Entry point for Render deployment
-// This file exists to ensure Render finds the correct starting point
-require('./server.js');
+const path = require('path');
+
+// Load the main server file
+require(path.join(__dirname, 'server.js'));
