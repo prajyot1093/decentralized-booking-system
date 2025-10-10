@@ -2,9 +2,10 @@
   "name": "decentralized-booking-backend",
   "version": "1.0.0",
   "description": "Backend API for decentralized booking system",
-  "main": "src/server.js",
+  "main": "src/index.js",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "node src/index.js",
+    "build": "echo 'Build complete'",
     "dev": "nodemon src/server.js",
     "test": "jest",
     "test:watch": "jest --watch",

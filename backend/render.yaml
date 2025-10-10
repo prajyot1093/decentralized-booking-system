@@ -1,3 +1,10 @@
-# Render Configuration for Backend
-buildCommand: "npm install"
-startCommand: "npm start"
+services:
+  - type: web
+    name: decentralized-booking-api
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production

@@ -30,6 +30,12 @@ Root Directory: backend
 Runtime: Node
 Build Command: npm install
 Start Command: npm start
+
+# IMPORTANT: Entry Point Fix
+# If you get "Cannot find module index.js" error:
+# - Main file is set to: src/index.js
+# - This file properly loads src/server.js
+# - Configuration already fixed in latest commit
 ```
 
 ### **Step 3: Environment Variables**
