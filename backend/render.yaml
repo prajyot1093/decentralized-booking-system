@@ -1,0 +1,3 @@
+# Render Configuration for Backend
+buildCommand: "npm install"
+startCommand: "npm start"

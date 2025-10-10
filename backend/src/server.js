@@ -10,7 +10,9 @@ const allowedOrigins = [
   'http://localhost:3001', 
   'https://decentralized-booking-demo.netlify.app',
   /\.netlify\.app$/,
-  /\.vercel\.app$/
+  /\.vercel\.app$/,
+  /\.onrender\.com$/,
+  /\.render\.com$/
 ];
 
 app.use(cors({

@@ -1,0 +1,30 @@
+{
+  "name": "decentralized-booking-backend",
+  "version": "1.0.0",
+  "description": "Backend API for decentralized booking system - Render optimized",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "build": "echo 'No build step required'",
+    "dev": "nodemon src/server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "booking",
+    "api",
+    "backend", 
+    "render",
+    "nodejs"
+  ],
+  "author": "Decentralized Booking System",
+  "license": "MIT"
+}
